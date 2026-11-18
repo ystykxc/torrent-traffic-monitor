@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.db
+*.db-wal
+*.db-shm
+data/
+tools/
+.git/
+.venv/
+README.md
+docker-compose.yml
+docker-compose.offline.yml
+*.tar
+*.tar.gz
+*.zip

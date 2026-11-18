@@ -1,0 +1,45 @@
+# 离线安装 Compose —— 用于飞牛默认加速源 401 Unauthorized 的情况
+# 无需构建、无需拉取任何镜像。先导入离线镜像包：
+#   docker load -i torrent-traffic-monitor-image-amd64-v48.tar
+# 然后：
+#   docker compose -f docker-compose.offline.yml up -d
+# 仅适用于 linux/amd64（x86_64 飞牛 NAS）。ARM 设备请改用源码构建。
+# 镜像文件名中的版本号是镜像构建批次号，与项目迭代版本号相互独立，请勿改动。
+
+services:
+  torrent-traffic-monitor:
+    image: torrent-traffic-monitor:1.0.0
+    container_name: torrent-traffic-monitor
+    restart: unless-stopped
+    user: "${PUID:-1000}:${PGID:-1000}"
+    ports:
+      # 默认监听宿主机所有网卡：局域网内其他主机可直接用
+      # http://<NAS 内网 IP>:${WEB_PORT:-8080} 访问，无需反向代理。
+      # 若只想让本机访问（例如由本机 lucky 反代统一收口），改成
+      #   - "127.0.0.1:${WEB_PORT:-8080}:8080"
+      # 若只想放行某一个内网 IP，改成
+      #   - "<宿主机内网 IP>:${WEB_PORT:-8080}:8080"
+      # 如需公网访问，请务必经反向代理追加 HTTPS / 二次认证 / IP 白名单。
+      - "${WEB_PORT:-8080}:8080"
+    environment:
+      TZ_OFFSET: "8"
+      POLL_INTERVAL: "5"
+      TRAFFIC_INTERVAL: "60"
+      REQUEST_TIMEOUT: "5"
+      SAMPLE_RETENTION_DAYS: "7"
+      # ---- 建议写进同目录 .env（chmod 600）----
+      BOOTSTRAP_USERNAME: "${BOOTSTRAP_USERNAME:-}"
+      BOOTSTRAP_PASSWORD: "${BOOTSTRAP_PASSWORD:-}"
+      SECRET_KEY: "${SECRET_KEY:-}"
+      TRUSTED_PROXIES: "${TRUSTED_PROXIES:-}"
+      SESSION_BIND: "${SESSION_BIND:-1}"
+      SESSION_TTL_DAYS: "${SESSION_TTL_DAYS:-30}"
+      ALLOW_PRIVATE_TARGETS: "${ALLOW_PRIVATE_TARGETS:-1}"
+    volumes:
+      - ./config.json:/app/config.json:ro
+      - ./data:/app/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

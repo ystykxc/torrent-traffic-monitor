@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>下载器流量统计</title>
+<meta name="description" content="多下载器实时流量监测与小时/日/周/月/年历史统计">
+<meta name="theme-color" content="#0a1120" id="metaTheme">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="下载器流量统计">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ============ 认证层 ============ -->
+<div class="auth-layer" id="authLayer" hidden>
+  <div class="auth-box">
+    <div class="auth-brand">
+      <span class="auth-logo">⇅</span>
+      <div><h1>下载器流量统计</h1><p>局域网多下载器流量统计</p></div>
+    </div>
+
+    <form id="loginForm" class="auth-form">
+      <h2>登录</h2>
+      <p class="auth-hint">请输入账号与密码以查看监控数据</p>
+      <label>账号<input id="loginUser" autocomplete="username" placeholder="admin" required></label>
+      <label>密码<input id="loginPass" type="password" autocomplete="current-password" placeholder="admin" required></label>
+      <div class="auth-msg" id="loginMsg"></div>
+      <button class="btn primary block" type="submit">登录</button>
+    </form>
+
+    <form id="setupForm" class="auth-form" hidden>
+      <h2>首次登录 · 必须修改账号与密码</h2>
+      <p class="auth-hint">默认账号 <b>admin / admin</b> 仅用于首次登录。请设置新的账号和密码（两者都不能仍是 admin），否则无法查看任何数据。</p>
+      <label>新账号<input id="setupUser" autocomplete="username" placeholder="例如 ptadmin，2~32 字符" required></label>
+      <label>新密码<input id="setupPass" type="password" autocomplete="new-password" placeholder="至少 6 位，不能是 admin" required></label>
+      <label>确认新密码<input id="setupPass2" type="password" autocomplete="new-password" required></label>
+      <div class="auth-msg" id="setupMsg"></div>
+      <button class="btn primary block" type="submit">保存并进入</button>
+      <button class="btn ghost block" type="button" id="btnSetupLogout">退出登录</button>
+    </form>
+
+    <div class="auth-foot">
+      <button class="btn sm ghost" id="btnAuthTheme" type="button">◐ 切换主题</button>
+      <span>数据仅保存在本机 · 单容器 SQLite</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 主界面 ============ -->
+<div id="app" hidden>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">⇅</span>
+      <h1>下载器流量统计</h1>
+    </div>
+    <div class="top-actions">
+      <span class="pill" id="healthPill"><span class="pill-txt">采集中</span></span>
+      <button class="pill pill-btn" id="btnSettings" title="设置" aria-label="设置"><span class="pill-txt">设置</span></button>
+    </div>
+  </header>
+  <div class="offline-bar" id="offlineBar" hidden>当前离线：界面为缓存版本，流量数据需联网后刷新</div>
+
+  <main>
+    <!-- 1) 顶部汇总卡片：今日 / 本周 / 本月 / 本年，上传下载同一行；
+ 右上角下拉为「历史数据」清单（文案改历史数据、统一加宽不重叠、
+ 手机端不越屏；纯展示、可无限下滑、非单选） -->
+    <section class="summary-grid" id="summaryCards"></section>
+
+    <!-- 2) 下载器卡片：第一行汇总，第二行每行 3 个、放不下自动换行。
+ 单击卡片打开详情弹窗；右上角胶囊开关控制是否加入图表，不再用高亮表示选中。
+ 单击汇总卡片打开「汇总详情」，标识挪到右下角、名称完整不省略、开关更短 -->
+    <section class="panel dl-panel">
+      <div class="panel-head compact">
+        <div class="ph-left"><h2>下载器</h2></div>
+        <span class="hint" id="lastUpdate"></span>
+      </div>
+      <div class="dl-strip" id="dlStrip"></div>
+    </section>
+
+    <!-- 3) 实时速率卡片 -->
+    <section class="panel rate-panel">
+      <div class="panel-head">
+        <div class="ph-left"><h2>实时速率</h2></div>
+        <div class="pan-head-right">
+          <button class="btn xs latest-btn" id="rateLatest" type="button" hidden>⟲ 回到最新</button>
+          <span class="pan-range" id="ratePanRange"></span>
+        </div>
+      </div>
+      <div class="chart-controls">
+        <div class="ctrl-top">
+          <div class="dropdown ctrl-dd" id="rateRangeWrap">
+            <button class="dd-trigger" id="rateRangeTrigger" type="button" aria-haspopup="true" aria-expanded="false"></button>
+            <div class="dd-menu" id="rateRangeMenu" hidden></div>
+          </div>
+          <div class="ctrl-dropdowns">
+            <div class="dropdown" id="rateDirWrap">
+              <button class="dd-trigger" id="rateDirTrigger" type="button" aria-haspopup="true" aria-expanded="false"></button>
+              <div class="dd-menu" id="rateDirMenu" hidden></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 绘图区改用原生 SVG 矢量渲染（曲线 / 柱 / 刻度文字放大不模糊），
+ 双层容器保持「数据层可平移 + 固定坐标轴层」结构，id 与交互接口不变。 -->
+      <div class="chart-viewport">
+        <div id="rateChart" class="chart chart-lg"></div>
+        <div id="rateAxis" class="chart-axis chart-lg" aria-hidden="true"></div>
+      </div>
+      <div class="legend" id="rateLegend"></div>
+    </section>
+
+    <!-- 4) 流量统计卡片：堆叠柱状图，无明细表格 -->
+    <section class="panel">
+      <div class="panel-head">
+        <div class="ph-left"><h2>流量统计</h2></div>
+        <div class="pan-head-right">
+          <button class="btn xs latest-btn" id="trafficLatest" type="button" hidden>⟲ 回到最新</button>
+          <span class="pan-range" id="trafficPanRange"></span>
+        </div>
+      </div>
+      <div class="chart-controls">
+        <div class="ctrl-top">
+          <div class="dropdown ctrl-dd" id="trafficRangeWrap">
+            <button class="dd-trigger" id="trafficRangeTrigger" type="button" aria-haspopup="true" aria-expanded="false"></button>
+            <div class="dd-menu" id="trafficRangeMenu" hidden></div>
+          </div>
+          <div class="ctrl-dropdowns">
+            <div class="dropdown" id="trafficDirWrap">
+              <button class="dd-trigger" id="trafficDirTrigger" type="button" aria-haspopup="true" aria-expanded="false"></button>
+              <div class="dd-menu" id="trafficDirMenu" hidden></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="stats-summary" id="trafficSummary"></div>
+      <div class="chart-viewport">
+        <div id="trafficChart" class="chart chart-lg"></div>
+        <div id="trafficAxis" class="chart-axis chart-lg" aria-hidden="true"></div>
+      </div>
+      <div class="legend" id="trafficLegend"></div>
+    </section>
+  </main>
+</div>
+
+<!-- ============ 设置（多页面） ============ -->
+<div class="modal-mask" id="settingsModal" hidden>
+  <div class="modal modal-settings">
+    <!-- 关闭按钮改用与全站其他按钮一致的胶囊样式（不再是裸 ✕） -->
+    <div class="modal-head"><h2>设置</h2><button class="btn sm" id="btnCloseSettings" type="button" aria-label="关闭设置">✕ 关闭</button></div>
+    <div class="settings-body">
+      <nav class="settings-nav" id="settingsNav">
+        <button class="st-nav active" data-page="downloaders" type="button">下载器</button>
+        <button class="st-nav" data-page="collect" type="button">采集</button>
+        <button class="st-nav" data-page="account" type="button">账户</button>
+        <button class="st-nav" data-page="appearance" type="button">外观</button>
+        <button class="st-nav" data-page="about" type="button">关于</button>
+      </nav>
+      <div class="settings-pages">
+
+        <!-- 页面 1：下载器配置 -->
+        <section class="st-page" data-page="downloaders">
+          <div class="cfg-tools">
+            <button class="btn sm" id="btnRecolor" type="button">🎨 一键重新分配颜色</button>
+            <span class="hint" id="recolorMsg">按当前顺序给所有下载器换一组高区分度配色（每点一次换一套）</span>
+          </div>
+          <div class="table-wrap config-table">
+            <table id="configTable">
+              <thead><tr><th>名称</th><th>类型</th><th>地址</th><th>曲线颜色</th><th>启用</th><th>顺序</th><th>操作</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <h3 id="formTitle">添加下载器</h3>
+          <form id="dlForm" class="form-grid">
+            <input type="hidden" id="fId">
+            <label>名称<input id="fName" placeholder="QB-01" required></label>
+            <label>类型<select id="fType"><option value="qb">qBittorrent</option><option value="tr">Transmission</option></select></label>
+            <label class="span2">WebUI / RPC 地址<input id="fUrl" placeholder="http://192.168.1.11:8080" required></label>
+            <label>用户名<input id="fUser" placeholder="admin（TR 无认证可留空）"></label>
+            <label>密码<input id="fPass" type="password" placeholder="新增时填写；编辑留空表示不改" autocomplete="new-password"></label>
+            <label class="check"><input id="fEnabled" type="checkbox" checked> 启用采集</label>
+            <!-- 曲线颜色设置。每个方向一个块：左侧「文字 + 色块」整体垂直
+ 居中对齐右侧 HSV / RGB 两行的中间；右侧分两行展示 HSV 与 RGB 值。
+ 色块弹调色板；HSV 代码框与 R/G/B 数值框既能返显自动分配 / 调色
+ 结果，也支持键盘直接输入，全部双向同步到隐藏取色器。 -->
+            <div class="color-row span2">
+              <div class="cc-head">
+                <h3>曲线颜色设置</h3>
+                <button type="button" class="btn sm" id="btnAutoColor">自动分配</button>
+              </div>
+              <div class="cc-block" data-target="fColorUp">
+                <div class="cc-side">
+                  <span class="cc-label">上传</span>
+                  <button type="button" class="cc-swatch" data-target="fColorUp" title="点击打开调色板" aria-label="上传颜色 · 打开调色板"></button>
+                </div>
+                <div class="cc-fields">
+                  <div class="cc-row">
+                    <span class="cc-tag">HSV∶</span>
+                    <label class="cc-numlike"><span class="cc-pfx">R:</span><input type="text" class="cc-hex" id="fColorUpHex" maxlength="7" spellcheck="false" aria-label="上传 HSV 十六进制颜色代码（字母大写）"></label>
+                  </div>
+                  <div class="cc-row">
+                    <span class="cc-tag">RGB∶</span>
+                    <label class="cc-num"><span class="cc-pfx">R:</span><input type="number" class="cc-rgb" data-ch="r" min="0" max="255" step="1" aria-label="上传 R 通道数值"></label>
+                    <label class="cc-num"><span class="cc-pfx">G:</span><input type="number" class="cc-rgb" data-ch="g" min="0" max="255" step="1" aria-label="上传 G 通道数值"></label>
+                    <label class="cc-num"><span class="cc-pfx">B:</span><input type="number" class="cc-rgb" data-ch="b" min="0" max="255" step="1" aria-label="上传 B 通道数值"></label>
+                  </div>
+                </div>
+                <input type="color" id="fColorUp" value="#F56C6C" hidden>
+              </div>
+              <div class="cc-block" data-target="fColorDown">
+                <div class="cc-side">
+                  <span class="cc-label">下载</span>
+                  <button type="button" class="cc-swatch" data-target="fColorDown" title="点击打开调色板" aria-label="下载颜色 · 打开调色板"></button>
+                </div>
+                <div class="cc-fields">
+                  <div class="cc-row">
+                    <span class="cc-tag">HSV∶</span>
+                    <label class="cc-numlike"><span class="cc-pfx">R:</span><input type="text" class="cc-hex" id="fColorDownHex" maxlength="7" spellcheck="false" aria-label="下载 HSV 十六进制颜色代码（字母大写）"></label>
+                  </div>
+                  <div class="cc-row">
+                    <span class="cc-tag">RGB∶</span>
+                    <label class="cc-num"><span class="cc-pfx">R:</span><input type="number" class="cc-rgb" data-ch="r" min="0" max="255" step="1" aria-label="下载 R 通道数值"></label>
+                    <label class="cc-num"><span class="cc-pfx">G:</span><input type="number" class="cc-rgb" data-ch="g" min="0" max="255" step="1" aria-label="下载 G 通道数值"></label>
+                    <label class="cc-num"><span class="cc-pfx">B:</span><input type="number" class="cc-rgb" data-ch="b" min="0" max="255" step="1" aria-label="下载 B 通道数值"></label>
+                  </div>
+                </div>
+                <input type="color" id="fColorDown" value="#409EFF" hidden>
+              </div>
+            </div>
+            <div class="form-actions span2">
+              <button type="button" class="btn" id="btnTest">测试连接</button>
+              <button type="button" class="btn ghost" id="btnReset">清空表单</button>
+              <button type="submit" class="btn primary">保存</button>
+              <span id="formMsg" class="hint"></span>
+            </div>
+          </form>
+        </section>
+
+        <!-- 页面 2：采集设置 -->
+        <section class="st-page" data-page="collect" hidden>
+          <!-- 实时范围选择置顶，然后实时速率采样间隔，最后流量统计采样间隔。 -->
+          <h3>「实时」时间范围</h3>
+          <p class="hint">实时速率卡片「实时」档展示最近多长时间的数据，可设置为 30 秒 ~ 30 分钟；横轴点数会随窗口和采样间隔自动调整。</p>
+          <div class="opt-row" id="liveOptions"></div>
+          <h3>实时速率 · 采样间隔</h3>
+          <p class="hint">实时速率曲线多久向每个下载器取一次数。间隔越短曲线越细腻，但请求更频繁。改动立即生效，保存在数据库中，重启容器不丢。</p>
+          <div class="opt-row" id="pollOptions"></div>
+          <h3>流量统计 · 采样间隔</h3>
+          <p class="hint">流量统计由独立采集线程按此间隔读取累计计数器并写入小时桶，与实时速率互不影响；总量按累计计数器差值计算，间隔变化不会丢量。</p>
+          <div class="opt-row" id="trafficPollOptions"></div>
+          <div class="form-actions">
+            <button type="button" class="btn primary" id="btnSaveCollect">保存设置</button>
+            <span class="hint" id="collectMsg"></span>
+          </div>
+          <p class="hint" id="collectCurrent"></p>
+        </section>
+
+        <!-- 页面 3：账户 -->
+        <section class="st-page" data-page="account" hidden>
+          <form id="accountForm" class="form-grid">
+            <label class="span2">原密码<input id="acOld" type="password" autocomplete="current-password" required></label>
+            <label class="span2">新账号<input id="acUser" autocomplete="username" placeholder="留空表示不修改"></label>
+            <label class="span2">新密码<input id="acPass" type="password" autocomplete="new-password" placeholder="留空表示不修改；填写时至少 6 位"></label>
+            <label class="span2">确认新密码<input id="acPass2" type="password" autocomplete="new-password"></label>
+            <div class="form-actions span2">
+              <button type="submit" class="btn primary">保存修改</button>
+              <button type="button" class="btn danger" id="btnLogout">退出登录</button>
+              <span id="accountMsg" class="hint"></span>
+            </div>
+          </form>
+        </section>
+
+        <!-- 页面 4：外观 -->
+        <section class="st-page" data-page="appearance" hidden>
+          <h3>界面主题</h3>
+          <p class="hint">切换后立即生效，并记住当前选择；登录页与 PWA 独立窗口同样适配。</p>
+          <div class="theme-row">
+            <button type="button" class="theme-choice" id="btnThemeDark"><span class="theme-prev dark"></span>深色主题</button>
+            <button type="button" class="theme-choice" id="btnThemeLight"><span class="theme-prev light"></span>浅色主题</button>
+          </div>
+          <h3>安装到桌面</h3>
+          <p class="hint">安卓 Chrome 需通过 HTTPS 域名访问才会出现「安装应用」；内网 HTTP 直连只能添加普通快捷方式。</p>
+          <button type="button" class="btn install" id="btnInstall" hidden>＋ 安装到桌面</button>
+          <p class="hint" id="installHint"></p>
+        </section>
+
+        <!-- 页面 5：关于 -->
+        <section class="st-page" data-page="about" hidden>
+          <h3>运行状态</h3>
+          <!-- 前两行固定 2 列 —— ①在线下载器数 + 实时窗口范围 ②两种采样间隔 -->
+          <div class="about-info about-lead" id="aboutLead"></div>
+          <div class="about-info" id="aboutInfo"></div>
+          <h3>数据</h3>
+          <p class="hint">数据保存在容器 <code>/app/data/traffic.db</code>（SQLite）。从部署那一刻开始记账，读的是下载器累计计数器的增量，不含部署前的历史流量。备份请停容器后复制整个 data 目录。</p>
+          <button type="button" class="btn primary" id="btnRefresh">立即刷新数据</button>
+          <p class="hint">单容器 · Python + Flask · 原生 SVG 矢量绘图（放大不模糊）· 零 CDN 依赖 · PWA 可安装</p>
+        </section>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 单台下载器详情弹窗 ============ -->
+<div class="modal-mask detail-mask" id="detailModal" hidden>
+  <div class="modal modal-detail" role="dialog" aria-modal="true" aria-labelledby="dlDetailTitle">
+    <div class="modal-head">
+      <h2 id="dlDetailTitle">下载器详情</h2>
+      <button class="btn sm" id="btnCloseDetail" type="button" aria-label="关闭详情">✕ 关闭</button>
+    </div>
+    <div class="detail-body" id="detailBody"></div>
+  </div>
+</div>
+
+<!-- ============ 汇总卡片详情弹窗（全部下载器汇总 + 逐台明细） ============ -->
+<div class="modal-mask detail-mask" id="summaryModal" hidden>
+  <div class="modal modal-detail modal-summary" role="dialog" aria-modal="true" aria-labelledby="summaryTitle">
+    <div class="modal-head">
+      <h2 id="summaryTitle">全部下载器 · 汇总详情</h2>
+      <button class="btn sm" id="btnCloseSummary" type="button" aria-label="关闭汇总详情">✕ 关闭</button>
+    </div>
+    <div class="detail-body" id="summaryBody"></div>
+  </div>
+</div>
+
+<!-- ============ 下载器连接测试结果小窗口 ============ -->
+<div class="modal-mask detail-mask" id="testModal" hidden>
+  <div class="modal modal-test" role="dialog" aria-modal="true" aria-labelledby="testTitle">
+    <div class="modal-head">
+      <h2 id="testTitle">连接测试</h2>
+      <button class="btn sm" id="btnCloseTest" type="button" aria-label="关闭测试结果">✕ 关闭</button>
+    </div>
+    <div class="test-body" id="testBody"></div>
+  </div>
+</div>
+
+<!-- ============ 曲线颜色调色板（HSV / RGB 双模式统一面板，点色块弹出） ============ -->
+<div class="modal-mask detail-mask" id="colorPickerModal" hidden>
+  <div class="modal modal-color" role="dialog" aria-modal="true" aria-labelledby="cpTitle">
+    <div class="modal-head">
+      <h2 id="cpTitle">自定义曲线颜色</h2>
+      <button class="btn sm" id="btnCloseColorPicker" type="button" aria-label="关闭调色板">✕ 关闭</button>
+    </div>
+    <div class="cp-tabs" role="tablist" aria-label="调色模式">
+      <button type="button" class="cm-tab active" data-cm="hsv" role="tab" aria-selected="true">HSV 调色板</button>
+      <button type="button" class="cm-tab" data-cm="rgb" role="tab" aria-selected="false">RGB 调色板</button>
+    </div>
+    <!-- 结果色块 + 颜色代码固定在三条滑块左侧并整体垂直居中，
+ 色块在上、代码在下；RGB 代码较长时 JS 给 #cpCode 加 is-rgb 调小字号。 -->
+    <div class="cp-body">
+      <div class="cp-left">
+        <i class="cp-preview" id="cpPreview" title="调色结果"></i>
+        <code class="cp-code" id="cpCode">#F56C6C</code>
+      </div>
+      <div class="cp-right">
+        <div class="cp-sliders" data-cm="hsv">
+          <div class="cp-slider-row"><span class="cp-slbl">色调</span><input type="range" class="cp-range" data-ch="h" min="0" max="360" step="1" value="0" aria-label="色调滑块"><input type="number" class="cp-num" data-ch="h" min="0" max="360" step="1" aria-label="色调数值"></div>
+          <div class="cp-slider-row"><span class="cp-slbl">饱和度</span><input type="range" class="cp-range" data-ch="s" min="0" max="100" step="1" value="0" aria-label="饱和度滑块"><input type="number" class="cp-num" data-ch="s" min="0" max="100" step="1" aria-label="饱和度数值"></div>
+          <div class="cp-slider-row"><span class="cp-slbl">明度</span><input type="range" class="cp-range" data-ch="v" min="0" max="100" step="1" value="0" aria-label="明度滑块"><input type="number" class="cp-num" data-ch="v" min="0" max="100" step="1" aria-label="明度数值"></div>
+        </div>
+        <div class="cp-sliders" data-cm="rgb" hidden>
+          <div class="cp-slider-row"><span class="cp-slbl">红 R</span><input type="range" class="cp-range" data-ch="r" min="0" max="255" step="1" value="0" aria-label="红 R 滑块"><input type="number" class="cp-num" data-ch="r" min="0" max="255" step="1" aria-label="红 R 数值"></div>
+          <div class="cp-slider-row"><span class="cp-slbl">绿 G</span><input type="range" class="cp-range" data-ch="g" min="0" max="255" step="1" value="0" aria-label="绿 G 滑块"><input type="number" class="cp-num" data-ch="g" min="0" max="255" step="1" aria-label="绿 G 数值"></div>
+          <div class="cp-slider-row"><span class="cp-slbl">蓝 B</span><input type="range" class="cp-range" data-ch="b" min="0" max="255" step="1" value="0" aria-label="蓝 B 滑块"><input type="number" class="cp-num" data-ch="b" min="0" max="255" step="1" aria-label="蓝 B 数值"></div>
+        </div>
+      </div>
+    </div>
+    <div class="cp-actions"><button type="button" class="btn primary" id="btnColorPickerDone">完成</button></div>
+  </div>
+</div>
+
+<div id="tooltip" class="tooltip" hidden></div>
+<script src="/static/charts.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

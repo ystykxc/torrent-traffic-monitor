@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>下载器流量统计</title>
+<meta name="description" content="MoviePilot 下载器流量统计插件">
+<meta name="theme-color" content="#ffffff" id="metaTheme">
+<!-- 运行时配置、样式与脚本由插件 page() 内联注入，页面自包含、无外部资源请求 -->
+<script>/*__TTM_CFG__*/</script>
+<style>/*__TTM_CSS__*/</style>
+</head>
+<body>
+
+<!-- v1.0.2：顶部栏、设置弹窗、主题切换、调色板、实时速率卡片全部移除。
+     所有设置统一在 MoviePilot 原生配置面板（单页）；账户认证由宿主负责；
+     页面固定浅色主题、背景透明以采用宿主底色；下载器卡片恢复汇总独立一行。 -->
+<!-- ============ 主界面 ============ -->
+<div id="app">
+  <main>
+    <!-- 1) 顶部汇总卡片：今日 / 本周 / 本月 / 本年，右上角为历史数据清单 -->
+    <section class="summary-grid" id="summaryCards"></section>
+
+    <!-- 2) 下载器卡片：恢复独立汇总卡片 + 自适应网格（上一版本样式） -->
+    <section class="panel dl-panel">
+      <div class="panel-head compact">
+        <div class="ph-left"><h2>下载器</h2></div>
+        <span class="hint" id="lastUpdate"></span>
+      </div>
+      <div class="dl-strip" id="dlStrip"></div>
+    </section>
+
+    <!-- 3) 流量统计卡片：堆叠柱状图 -->
+    <section class="panel">
+      <div class="panel-head">
+        <div class="ph-left"><h2>流量统计</h2></div>
+        <div class="pan-head-right">
+          <button class="btn xs latest-btn" id="trafficLatest" type="button" hidden>⟲ 回到最新</button>
+          <span class="pan-range" id="trafficPanRange"></span>
+        </div>
+      </div>
+      <div class="chart-controls">
+        <div class="ctrl-top">
+          <div class="dropdown ctrl-dd" id="trafficRangeWrap">
+            <button class="dd-trigger" id="trafficRangeTrigger" type="button" aria-haspopup="true" aria-expanded="false"></button>
+            <div class="dd-menu" id="trafficRangeMenu" hidden></div>
+          </div>
+          <div class="ctrl-dropdowns">
+            <div class="dropdown" id="trafficDirWrap">
+              <button class="dd-trigger" id="trafficDirTrigger" type="button" aria-haspopup="true" aria-expanded="false"></button>
+              <div class="dd-menu" id="trafficDirMenu" hidden></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="stats-summary" id="trafficSummary"></div>
+      <div class="chart-viewport">
+        <div id="trafficChart" class="chart chart-lg"></div>
+        <div id="trafficAxis" class="chart-axis chart-lg" aria-hidden="true"></div>
+      </div>
+      <div class="legend" id="trafficLegend"></div>
+    </section>
+  </main>
+</div>
+
+<!-- ============ 单台下载器详情弹窗 ============ -->
+<div class="modal-mask detail-mask" id="detailModal" hidden>
+  <div class="modal modal-detail" role="dialog" aria-modal="true" aria-labelledby="dlDetailTitle">
+    <div class="modal-head">
+      <h2 id="dlDetailTitle">下载器详情</h2>
+      <button class="btn sm" id="btnCloseDetail" type="button" aria-label="关闭详情">✕ 关闭</button>
+    </div>
+    <div class="detail-body" id="detailBody"></div>
+  </div>
+</div>
+
+<!-- ============ 汇总卡片详情弹窗（全部下载器汇总 + 逐台明细） ============ -->
+<div class="modal-mask detail-mask" id="summaryModal" hidden>
+  <div class="modal modal-detail modal-summary" role="dialog" aria-modal="true" aria-labelledby="summaryTitle">
+    <div class="modal-head">
+      <h2 id="summaryTitle">全部下载器 · 汇总详情</h2>
+      <button class="btn sm" id="btnCloseSummary" type="button" aria-label="关闭汇总详情">✕ 关闭</button>
+    </div>
+    <div class="detail-body" id="summaryBody"></div>
+  </div>
+</div>
+
+<div id="tooltip" class="tooltip" hidden></div>
+<script>/*__TTM_CHARTS_JS__*/</script>
+<script>/*__TTM_APP_JS__*/</script>
+</body>
+</html>

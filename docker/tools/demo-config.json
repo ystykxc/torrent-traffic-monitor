@@ -1,0 +1,14 @@
+{
+  "poll_interval": 5,
+  "traffic_interval": 10,
+  "request_timeout": 3,
+  "sample_retention_days": 7,
+  "tz_offset": 8,
+  "downloaders": [
+    {"name": "MOCK-QB-01", "type": "qb", "url": "http://127.0.0.1:18081", "username": "admin", "password": "demo", "enabled": true},
+    {"name": "MOCK-QB-02", "type": "qb", "url": "http://127.0.0.1:18082", "username": "admin", "password": "demo", "enabled": true},
+    {"name": "MOCK-QB-03", "type": "qb", "url": "http://127.0.0.1:18083", "username": "admin", "password": "demo", "enabled": true},
+    {"name": "MOCK-TR-01", "type": "tr", "url": "http://127.0.0.1:19091", "username": "", "password": "", "enabled": true},
+    {"name": "MOCK-TR-02", "type": "tr", "url": "http://127.0.0.1:19092", "username": "", "password": "", "enabled": true}
+  ]
+}

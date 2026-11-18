@@ -1,0 +1,15 @@
+{
+  "poll_interval": 5,
+  "traffic_interval": 60,
+  "live_span": 300,
+  "request_timeout": 5,
+  "sample_retention_days": 7,
+  "tz_offset": 8,
+  "downloaders": [
+    {"name": "QB-01", "type": "qb", "url": "http://192.168.1.11:8080", "username": "admin", "password": "改成你的密码", "enabled": true, "color_up": "#F56C6C", "color_down": "#409EFF"},
+    {"name": "QB-02", "type": "qb", "url": "http://192.168.1.12:8080", "username": "admin", "password": "改成你的密码", "enabled": true},
+    {"name": "QB-03", "type": "qb", "url": "http://192.168.1.13:8080", "username": "admin", "password": "改成你的密码", "enabled": true},
+    {"name": "TR-01", "type": "tr", "url": "http://192.168.1.14:9091", "username": "", "password": "", "enabled": true},
+    {"name": "TR-02", "type": "tr", "url": "http://192.168.1.15:9091", "username": "", "password": "", "enabled": true}
+  ]
+}

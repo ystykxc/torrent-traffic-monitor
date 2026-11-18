@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# 运行时数据与本地配置（含下载器地址与账号，切勿入库）
+data/
+*.db
+*.db-wal
+*.db-shm
+config.json
+
+# 本地环境变量（BOOTSTRAP_PASSWORD / SECRET_KEY 等强凭据，切勿入库）
+.env
+.env.*
+!.env.example
+
+# 交付产物（体积大，走 Releases / 本地离线包分发，不入库）
+*.tar
+*.tar.gz
+*.zip
+preview-*.png

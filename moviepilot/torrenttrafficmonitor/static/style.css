@@ -1,0 +1,1060 @@
+/* 下载器流量统计 · 全站样式
+ * ---------------------------------------------------------------------------
+ * 按功能分区组织：主题变量 → 全局基础 → 顶栏 / 按钮 → 认证层 → 页面布局 →
+ * 汇总卡片 / 下载器卡片 → 图表控件 / 图例 → 弹窗 / 设置页 → 响应式断点。
+ *
+ * 迭代约束：文件后半的「全局收紧」规则刻意位于各 @media 之后，用来覆盖
+ * 窄屏值，这是有效的层叠设计而非无序补丁。改样式请直接修改对应规则，
+ * 不要在文件末尾追加同名选择器覆盖；新增响应式样式请写进对应断点块，
+ * 并留意它与后置全局规则的先后关系。
+ *
+ * 深浅双主题由 :root[data-theme] 变量驱动，登录页 / 设置页 / 主界面全量适配。
+ */
+/* ---- 主题变量 ---- */
+/* v1.0.1：删除主题选择，固定浅色主题；页面背景透明由下方 body 规则负责。 */
+:root{--bg:#ffffff;--bg2:#f0f4fa;--panel:#ffffff;--panel2:#f4f7fb;--line:#dce4ef;--grid:#e3e9f2;--text:#16233a;--muted:#64748b;--down:#0284c7;--up:#ea6b1f;--ok:#059669;--bad:#dc2626;--accent:#4f46e5;--shadow:0 8px 28px rgba(20,40,80,.14);--tip:#ffffff;--tip-line:#c8d5e8;--btn-h:34px}
+
+/* ---- 全局基础 / Reset ---- */
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;padding:0;background:transparent}
+/* 页面不使用任何背景底色，直接透出 MoviePilot 宿主原生底色。 */
+body{background:transparent;color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh}
+h1,h2,h3,p{margin:0}
+button,input,select{font:inherit}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* ---- 顶栏 / 状态胶囊 ---- */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 78%,transparent);backdrop-filter:blur(10px);position:sticky;top:0;z-index:20}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.logo,.auth-logo{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:22px;background:linear-gradient(135deg,var(--down),var(--accent));color:#fff;font-weight:700;flex:none}
+.brand h1{font-size:17px;font-weight:650;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top-actions{display:flex;align-items:center;gap:14px;flex:none}
+.pill{display:inline-flex;align-items:center;justify-content:center;min-width:60px;height:var(--btn-h);min-height:var(--btn-h);box-sizing:border-box;font-size:12px;line-height:1;color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 35%,transparent);background:color-mix(in srgb,var(--ok) 9%,transparent);border-radius:999px;white-space:nowrap}
+.pill.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,transparent);background:color-mix(in srgb,var(--bad) 9%,transparent)}
+button.pill{font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.pill.pill-btn{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.pill.pill-btn:hover{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 20%,transparent)}
+
+/* ---- 顶栏两枚胶囊改为纯文字 / 等宽 / 缩短 / 中间留白加宽 ----
+ · index.html / app.js 去掉「● 」状态圆点与「⚙ 」齿轮图标，只留「采集中」「设置」；
+ · 两枚胶囊共用同一个 min-width(60px)，删图标后字数不同也不会一长一短，
+ 常态严格等宽；宽度由 76 / 66 缩短到统一 60px（异常长文案仍可撑开，沿用既有行为）；
+ · .top-actions 两按钮间距由 9 / 6px 适当加宽到 14 / 10px，视觉更平衡；
+ · 桌面 + 手机端一并生效；（桌面 logo 调小）见 >=901px 桌面块。 */
+
+/* ---- 胶囊文字按字形边界上下 / 左右居中 ----
+ 桌面端把胶囊压到 26px 高 / 11px 字，line-height:1 下中文与 ● / ⚙ 的
+ fallback 字体度量会让可见字形在行盒里偏上或偏下（不同系统字体方向相反），
+ 看起来就是「上留白比下留白多、文字没上下居中」。把文字单独包成 .pill-txt
+ 块，先由 .pill 的 flex 居中精确落在正中；支持 text-box-trim 的浏览器再按
+ cap / alphabetic 裁掉多余 leading，让可见字形本身也精确居中（按当前字体
+ 自适应，不写死补偿像素）。老浏览器回退到 line-height:1 + flex 居中，
+ 胶囊盒尺寸与外观一律不变。 */
+.pill-txt{display:block;line-height:1;white-space:nowrap}
+@supports (text-box-trim: trim-both) {
+  .pill-txt{text-box-trim:trim-both;text-box-edge:cap alphabetic;line-height:normal}
+}
+
+/* ---- 通用按钮 ---- */
+.btn{background:var(--panel2);color:var(--text);border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line));border-radius:999px;cursor:pointer;transition:.15s;white-space:nowrap;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.btn:hover{border-color:var(--accent);background:var(--panel2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.12)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,var(--line))}
+.btn.sm{font-size:12px}
+.btn.xs{font-size:12px;line-height:1.4}
+.btn.block{width:100%}
+.btn.install{background:color-mix(in srgb,var(--ok) 13%,transparent);border-color:color-mix(in srgb,var(--ok) 45%,transparent);color:var(--ok);font-weight:600}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ---- 全站按钮文字统一上下 / 左右居中（桌面端 + 手机端逐项核对） ----
+ 原先只有一部分按钮是 inline-flex + align-items/justify-content 居中；登录 /
+ 回到最新 / 调色板 HSV·RGB 标签 / 完成 / 各弹窗关闭按钮仍是 inline-block 或
+ block，靠 text-align + padding 排版，字高与上下留白并不严格对称。这里统一
+ 改为 inline-flex + align-items:center + justify-content:center，并补齐
+ text-align / vertical-align。只改「排布方式」，不改 font-size / line-height /
+ padding / width / height / min-height，所有按钮盒子尺寸逐像素不变。
+ · .dd-trigger / .card-dd-trigger 内部是「文字 + ▾」两端对齐，保留其
+ justify-content:space-between，只统一垂直居中；
+ · 外观设置页两枚带颜色方块的 .theme-choice 已确认无此问题，显式排除、 */
+.btn, .pill, .pill-btn, .st-nav, .chip, .cm-tab, .latest-btn,
+.opt-row .chip, .cp-tab, .cc-tab{
+  display:inline-flex;align-items:center;justify-content:center;
+  text-align:center;vertical-align:middle;
+}
+.dd-trigger, .card-dd-trigger{
+  display:inline-flex;align-items:center;text-align:center;vertical-align:middle;
+}
+
+/* ---- 顶栏 / 状态胶囊 ---- */
+.offline-bar{background:color-mix(in srgb,var(--up) 14%,transparent);border-bottom:1px solid color-mix(in srgb,var(--up) 40%,transparent);color:var(--up);text-align:center;font-size:12px;padding:7px 14px}
+
+/* ---- 认证层 ---- */
+.auth-layer{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:20px;background:radial-gradient(900px 500px at 50% -10%,var(--bg2) 0%,transparent 65%),var(--bg)}
+.auth-box{width:min(410px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+.auth-brand{display:flex;align-items:center;gap:12px}
+.auth-brand h1{font-size:18px;font-weight:650}
+.auth-brand p{color:var(--muted);font-size:12px;margin-top:2px}
+.auth-form h2{font-size:16px;font-weight:650}
+.auth-hint{color:var(--muted);font-size:12px;line-height:1.6}
+.auth-hint b{color:var(--text)}
+.auth-form label{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:12px}
+.auth-form input{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:10px 12px;outline:none;width:100%}
+.auth-form input:focus{border-color:var(--accent)}
+.auth-msg{font-size:12px;color:var(--bad);min-height:18px}
+.auth-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--line);color:var(--muted);font-size:11px}
+
+/* ---- 页面布局 / 汇总卡片 ---- */
+/* 去掉 1480px 居中上限 —— 宽屏桌面左右各留出几百像素空白、
+ 主界面没铺满屏幕。改为横向铺满（max-width:none），左右「正常留白」由
+ 本文件后半 main 的 padding（clamp(18px,1.4vw,36px)，窄屏另有断点覆盖）
+ 提供，随屏宽平滑增大而非把内容锁死在中间一小条。 */
+main{max-width:none;margin:0 auto}
+.summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.card{background:radial-gradient(150px 110px at 100% 0%,color-mix(in srgb,var(--up) 11%,transparent),transparent 72%),
+  linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:12px;position:relative;min-width:0}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:6px;color:var(--muted);font-size:11px;min-height:24px;min-width:0}
+.card-ttl{display:flex;align-items:baseline;gap:6px;min-width:0;flex:1 1 auto}
+.card-ttl b{font-size:12px;font-weight:650;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-date{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-dd{position:relative;flex:none;min-width:0}
+
+/* ---- 范围/方向下拉控件 ---- */
+.dd-trigger.card-dd-trigger{min-width:0;width:auto;max-width:100%;padding:3px 8px;font-size:11px;gap:5px}
+.dd-trigger.card-dd-trigger .caret{font-size:9px}
+
+/* ---- 页面布局 / 汇总卡片 ---- */
+.card-dd-trigger .dd-count{font-size:11px;color:var(--muted);font-weight:400;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.card-dd-menu.hist-menu{right:0;left:auto;min-width:288px;width:min(328px,calc(100vw - 16px));max-width:calc(100vw - 16px);max-height:none;overflow:hidden;padding:6px 6px 8px}
+.hist-title{font-size:12px;font-weight:650;color:var(--text);letter-spacing:.3px;padding:7px 8px 8px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.hist-list{max-height:250px;overflow-y:auto;overscroll-behavior:contain}
+.hist-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;column-gap:12px;padding:7px 8px;border-radius:7px;font-size:12px;color:var(--text);white-space:nowrap}
+.hist-row:hover{background:var(--panel2)}
+.hr-half{display:flex;align-items:baseline;justify-content:space-between;gap:4px;min-width:0}
+.hist-row .hr-name{font-weight:600;flex:none}
+.hist-row .hr-date{color:var(--muted);font-variant-numeric:tabular-nums;flex:none}
+.hist-row .v{display:inline-flex;align-items:baseline;gap:2px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.hist-row .v b{font-size:12px;font-weight:650}
+.hist-row .v i{font-style:normal;font-size:11px}
+.hist-row .v.up b,.hist-row .v.up i{color:var(--up)}
+.hist-row .v.down b,.hist-row .v.down i{color:var(--down)}
+.hist-empty{font-size:12px;color:var(--muted);text-align:center;padding:16px 8px}
+.card-vals{display:flex;align-items:baseline;gap:12px;margin-top:6px;min-width:0}
+.card-vals .v{display:inline-flex;align-items:baseline;gap:3px;min-width:0;font-variant-numeric:tabular-nums;white-space:nowrap}
+.card-vals .v b{font-size:15px;font-weight:680;letter-spacing:.1px;overflow:hidden;text-overflow:ellipsis}
+.card-vals .v i{font-style:normal;font-size:11px;opacity:.9}
+.card-vals .v.up b,.card-vals .v.up i{color:var(--up)}
+.card-vals .v.down b,.card-vals .v.down i{color:var(--down)}
+
+/* ---- 面板标题 / 控件行 ---- */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px}
+.panel-head{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:nowrap}
+.panel-head>.ph-left{flex:1 1 auto;min-width:0}
+.panel-head h2{font-size:15px;font-weight:650;line-height:1.5}
+.hint{color:var(--muted);font-size:12px}
+.latest-btn{flex:none;align-self:flex-start;margin-top:0;white-space:nowrap;font-size:11px;line-height:1.6}
+.pan-head-right{display:flex;justify-content:flex-end;gap:9px;flex-wrap:nowrap;flex:none;min-width:0;white-space:nowrap}
+.pan-range{font-size:11px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:.2px}
+.pan-range[hidden]{display:none}
+
+/* ---- 范围/方向下拉控件 ---- */
+.ctrl-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:nowrap}
+.ctrl-dd{flex:0 1 auto;min-width:0}
+.ctrl-label{color:var(--muted);font-size:12px;flex:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:999px;font-size:12px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:.12s;white-space:nowrap}
+.chip:hover{color:var(--text);border-color:var(--accent)}
+.chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.ctrl-dropdowns{display:flex;align-items:center;gap:8px;flex:none;margin-left:auto}
+.dropdown{position:relative}
+.dd-trigger{display:inline-flex;align-items:center;gap:8px;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:999px;padding:6px 11px;font-size:12px;cursor:pointer;white-space:nowrap;min-width:136px;justify-content:space-between;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.dd-trigger:hover,.dd-trigger.open{border-color:var(--accent)}
+.dd-trigger .caret{color:var(--muted);font-size:10px;transition:.15s}
+.dd-trigger.open .caret{transform:rotate(180deg)}
+.dd-trigger .dd-count{color:var(--muted);font-variant-numeric:tabular-nums}
+.dd-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:30;min-width:190px;max-width:min(280px,86vw);max-height:380px;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow);padding:6px}
+.ctrl-dd .dd-menu{right:auto;left:0}
+.dd-item{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;cursor:pointer;font-size:12px;color:var(--text);white-space:nowrap;user-select:none}
+.dd-item:hover{background:var(--panel2)}
+.dd-item input[type=checkbox],.dd-item input[type=radio]{accent-color:var(--accent);width:15px;height:15px;flex:none;cursor:pointer;margin:0}
+.dd-item .nm{overflow:hidden;text-overflow:ellipsis}
+.dd-item .rk{margin-left:auto;font-size:10px;color:var(--muted);flex:none}
+.dd-item.active{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--text)}
+.dd-item .sw{width:11px;height:11px;border-radius:3px;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+.dd-item .bi{width:16px;height:11px;border-radius:3px;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+.dd-title{font-size:11px;color:var(--muted);padding:6px 9px 4px;letter-spacing:.5px}
+.dd-foot{display:flex;gap:6px;border-top:1px solid var(--line);margin-top:5px;padding-top:7px}
+.dd-foot button{flex:1;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:999px;font-size:11px;cursor:pointer}
+.dd-foot button:hover{color:var(--text);border-color:var(--accent)}
+
+/* ---- 图表双层容器 / 图例 ---- */
+.chart-viewport{position:relative;overflow:hidden;width:100%}
+.chart{position:relative;z-index:1;width:100%;display:block;touch-action:pan-y;cursor:grab;transform:translateX(0);will-change:transform}
+.chart.panning{cursor:grabbing}
+.chart-axis{position:absolute;left:0;top:0;width:100%;display:block;pointer-events:none;z-index:2}
+.chart>.ttm-svg,.chart-axis>.ttm-svg{display:block;width:100%;height:100%;overflow:hidden}
+.chart>.ttm-svg text,.chart-axis>.ttm-svg text{user-select:none}
+.legend{--lg-gap:30px;display:flex;justify-content:center;color:var(--muted);font-size:11px;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;flex:none}
+.legend i.thin{height:2px}
+.legend i.bi{width:14px;height:11px;border-radius:3px}
+.legend i.sq{width:11px;height:11px;border-radius:2px}
+.legend .arw{font-weight:700;font-size:1.08em;line-height:1}
+.legend .lg-lb{color:var(--muted)}
+.legend .lg-v{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.legend .pair{display:inline-flex;align-items:center;gap:3px}
+.legend .lg-row{display:flex;flex-wrap:nowrap;justify-content:center;align-items:center;gap:var(--lg-gap,30px);width:100%;min-width:0}
+.legend .lg-item{display:inline-flex;align-items:center;gap:5px;font-size:1em;flex:0 0 auto;max-width:none;min-width:0;white-space:nowrap;overflow:visible}
+.legend .lg-nm,.legend .lg-name{color:var(--text);font-weight:600;font-size:1em;white-space:nowrap;overflow:visible;text-overflow:clip}
+.legend .v-short{display:none}
+
+/* ---- 下载器卡片 ---- */
+.dl-strip{display:flex;flex-direction:column;gap:7px}
+.dl-row{display:flex;gap:7px;min-width:0}
+.dl-row-sum{display:flex}
+/* 桌面端横向宽度足够，不再死死卡「一行两个」。
+ 改为按容器宽度自适应列数（auto-fit）：每列保底 300px，宽度够就多放几列、
+ 不够自动减列并换行；空列折叠后由 1fr 均分，既铺满又不留半屏空白。
+ 300px 下限保证每张小卡的名称 / ↑↓ 完整速率 / 类型标签都有位置，绝不因挤压
+ 而省略或裁切（fitChipNames 仍保留缩字号 / 换行兜底）。
+ ≤1200px 的中等 / 窄屏在对应 @media 块里恢复固定 2 列，手机端另有覆盖。 */
+.dl-row-items{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:7px}
+.dl-chip{display:flex;flex-direction:column;min-width:0;background:var(--panel2);border:1px solid var(--line);border-radius:9px;cursor:pointer;position:relative;overflow:hidden;transition:border-color .16s,box-shadow .16s,background .16s;user-select:none;-webkit-tap-highlight-color:transparent}
+.dl-chip:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.dl-chip.off{opacity:.6}
+.dl-chip.summary{width:100%;background:linear-gradient(120deg,color-mix(in srgb,var(--accent) 10%,var(--panel2)),var(--panel2));border-color:color-mix(in srgb,var(--accent) 26%,var(--line))}
+.dl-top{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}
+.dl-bottom{display:flex;align-items:flex-end;justify-content:space-between;gap:6px;min-width:0}
+.dl-switch{position:relative;flex:none;width:24px;height:14px;padding:0;cursor:pointer;border-radius:999px;border:1px solid var(--line);background:var(--bg2);transition:background .16s,border-color .16s;-webkit-tap-highlight-color:transparent}
+.dl-switch .knob{position:absolute;top:1px;left:1px;width:10px;height:10px;border-radius:50%;background:var(--muted);transition:transform .16s,background .16s}
+.dl-switch.on{background:color-mix(in srgb,var(--accent) 65%,transparent);border-color:color-mix(in srgb,var(--accent) 75%,transparent)}
+.dl-switch.on .knob{transform:translateX(10px);background:#fff}
+.dl-switch:hover{border-color:var(--accent)}
+.dl-switch:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dl-chip .nm{font-weight:600;font-size:12px;display:flex;align-items:center;gap:5px;min-width:0;flex:1 1 auto}
+.dl-chip .nm .dl-nm{white-space:nowrap;min-width:0;overflow:visible;text-overflow:clip}
+.dl-chip.summary .nm{font-size:13px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
+.dot.off{background:var(--bad)}
+.dl-chip .tag{font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:0 4px;flex:none;white-space:nowrap}
+.dl-tag{margin-left:auto;align-self:flex-end}
+/* v1.0.3：汇总卡片右上角在线情况标签，取代原来的胶囊开关。
+   全在线用绿色、有离线用红色，数字等宽避免刷新时抖动。 */
+.sum-online{flex:none;align-self:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+.sum-online.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent);background:color-mix(in srgb,var(--ok) 9%,transparent)}
+.sum-online.warn{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,transparent);background:color-mix(in srgb,var(--bad) 9%,transparent)}
+.dl-rates{display:flex;align-items:baseline;justify-content:flex-start;gap:10px;font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:0}
+.dl-rates .u{color:var(--up);min-width:0}
+.dl-rates .d{color:var(--down);min-width:0}
+.dl-rates b{font-weight:400}
+.dl-rates .rc{display:none}
+.dl-chip.summary .dl-rates{font-size:12px}
+.dl-chip.summary .dl-rates .u{font-weight:700}
+
+/* ---- 下载器详情弹窗 ---- */
+.modal.modal-detail{width:min(620px,94vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+.modal.modal-summary{width:min(940px,96vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+.detail-body{--dt-pad:10px;padding:1px 1px 3px;flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.dt-loading,.dt-error{padding:30px 10px;text-align:center;color:var(--muted);font-size:13px}
+.dt-error{color:var(--bad)}
+.dt-error .hint{display:block;margin-top:6px;font-size:11px}
+/* 图标 + 右侧三行文字整体再左移（左侧内边距收紧），图标与文字
+ 再靠近（grid 列间距 8→4）；就地修改，不在末尾追加同名覆盖。 */
+.dt-head{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px;align-items:stretch;padding:var(--dt-pad) var(--dt-pad) var(--dt-pad) 3px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.dt-badge{width:64px;min-height:72px;align-self:stretch;display:grid;place-items:center start;background:transparent;border-radius:0;overflow:visible;flex:none}
+.dt-badge svg{width:64px;height:64px;max-width:100%;max-height:100%}
+.dt-main{display:flex;flex-direction:column;justify-content:space-between;gap:4px;min-width:0}
+.dt-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.dt-line{display:flex;align-items:center;gap:6px;min-width:0;font-size:13px;line-height:1.3;white-space:nowrap}
+.dt-l{flex:1 1 auto;min-width:0}
+/* 右侧「实时 / 限速 / 剩余」三行不收缩（flex:0 0 auto），限速内容
+ 再长也完整显示，压缩全部交给左侧（地址 nowrap+ellipsis），杜绝与地址重叠。 */
+.dt-r{flex:0 0 auto;min-width:0;max-width:none;flex-wrap:nowrap;justify-content:flex-end;white-space:nowrap}
+.dt-name{font-size:16px;font-weight:700;color:var(--text);white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+/* 地址字号再缩小（12→10），并强制单行 nowrap + ellipsis ——
+ 限速内容再长也不因挤压而换行、不与右侧重叠，超长部分省略号收尾。
+ display:block 覆盖 .dt-line 的 flex，否则文本被包成匿名 flex item，
+ text-overflow:ellipsis 不生效且 flex item 默认 min-width:auto 会撑破不收缩。 */
+.dt-url{display:block;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dt-pills{gap:6px;flex-wrap:wrap}
+.dt-pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.dt-pill.alt{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent);background:color-mix(in srgb,var(--ok) 10%,transparent)}
+.dt-k{font-size:11px;color:var(--muted);flex:none}
+.dt-line b.u{color:var(--up)}
+.dt-line b.d{color:var(--down)}
+.dt-line b{font-weight:650;font-variant-numeric:tabular-nums}
+.dt-lim{font-size:12px;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap}
+/* 不限速只留一个「∞」字符，去掉原来的圆形背景 / 边框 / 尺寸盒。 */
+.dt-inf{font-size:13px;line-height:1;font-weight:700;color:var(--muted);vertical-align:middle}
+.dt-stats{display:flex;flex-direction:column}
+.dt-stats-row{display:grid;gap:6px;min-width:0}
+.dt-stats-row.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.dt-stats-row.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.dt-stat{display:flex;flex-direction:column;gap:2px;padding:7px var(--dt-pad);min-width:0;border:1px solid var(--line);border-radius:9px;background:var(--panel2)}
+.dt-stat span{font-size:11px;color:var(--muted);white-space:nowrap}
+.dt-stat b{font-size:17px;font-weight:680;color:var(--text);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.dt-stat.bad b{color:var(--bad)}
+.dt-pill.io{font-variant-numeric:tabular-nums}
+.dt-pill.io-good{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,transparent);background:color-mix(in srgb,var(--ok) 14%,transparent)}
+.dt-pill.io-warn{color:var(--up);border-color:color-mix(in srgb,var(--up) 50%,transparent);background:color-mix(in srgb,var(--up) 16%,transparent)}
+.dt-pill.io-bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 50%,transparent);background:color-mix(in srgb,var(--bad) 16%,transparent)}
+.dt-sum-hero{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:linear-gradient(120deg,color-mix(in srgb,var(--accent) 10%,var(--panel2)),var(--panel2))}
+.dt-sum-rates{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.dt-sum-rates b{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
+.dt-sum-rates .dt-k{font-size:16px;font-weight:650;color:var(--muted)}
+.dt-sum-rates b.u,.dt-sum-hero .ok{color:var(--up)}
+.dt-sum-rates b.d{color:var(--down)}
+.dt-sum-conn{font-size:13px;color:var(--muted)}
+.dt-sum-conn b{font-size:15px;color:var(--text);font-weight:700}
+.dt-sum-hero .ok{color:var(--ok);font-weight:600}
+.dt-sum-hero .bad,.dt-item-st.bad{color:var(--bad);font-weight:600}
+.dt-sec{font-size:13px;font-weight:650;color:var(--text);padding-left:9px;border-left:3px solid var(--accent)}
+.dt-items{display:flex;flex-direction:column}
+.dt-item{border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--panel)}
+.dt-item-hd{display:flex;align-items:center;gap:8px;margin-bottom:6px;min-width:0}
+.dt-item-no{display:inline-grid;place-items:center;width:20px;height:20px;flex:none;border-radius:50%;font-size:11px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.dt-item-nm{font-size:13px;font-weight:650;color:var(--text);overflow-wrap:anywhere;min-width:0}
+.dt-item-st{margin-left:auto;font-size:11px;flex:none}
+.dt-item-st.ok{color:var(--ok)}
+.dt-item .dt-stats{margin-top:7px}
+.dt-item .dt-head{background:var(--panel2)}
+
+/* ---- 设置弹窗 / 表单 / 调色板 ---- */
+.cfg-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cfg-tools .hint{flex:1;min-width:180px;font-size:11px}
+
+/* ---- 统计汇总 / 表格 / 弹窗外壳 ---- */
+.stats-summary{display:flex;flex-wrap:wrap;justify-content:flex-start;background:var(--panel2);border:1px solid var(--line);border-radius:10px}
+.stats-summary div{font-size:12px;color:var(--muted)}
+.stats-summary b{display:block;font-size:17px;color:var(--text);font-variant-numeric:tabular-nums;margin-top:2px;font-weight:600}
+.stats-summary b.u{color:var(--up)}
+.stats-summary b.d{color:var(--down)}
+.table-wrap{overflow:auto;max-height:320px;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{position:sticky;top:0;background:var(--panel2);color:var(--muted);font-weight:500;z-index:1}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+tbody tr:last-child td{border-bottom:0}
+.row-btns{display:flex;gap:4px;flex-wrap:wrap}
+.order-btns{display:inline-flex;gap:4px}
+.config-table .row-btns{flex-wrap:nowrap;gap:5px;width:max-content}
+.config-table .row-btns .btn{font-size:11px;line-height:1.5}
+.modal-mask{position:fixed;inset:0;background:rgba(3,8,18,.72);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:20px}
+.modal-mask:not([hidden]):has(~ .modal-mask:not([hidden])){background:transparent}
+.detail-mask{align-items:safe center;justify-content:center;padding:20px;overflow-y:auto}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;width:min(880px,100%);max-height:90vh;overflow:auto;box-shadow:var(--shadow)}
+.modal.modal-settings{width:min(1000px,100%);height:min(86vh,760px);max-height:none;display:flex;flex-direction:column;overflow:hidden}
+.modal-head{display:flex;justify-content:space-between;align-items:center;flex:none}
+.modal h2{font-size:16px}
+.modal h3{font-size:14px}
+.modal h3:first-child{margin-top:2px}
+.config-table{max-height:250px}
+.config-table table{table-layout:fixed}
+.config-table th:nth-child(1){width:13%}
+.config-table th:nth-child(2){width:12%}
+.config-table th:nth-child(3){width:11%}
+.config-table th:nth-child(4){width:17%}
+.config-table th:nth-child(5){width:6%}
+.config-table th:nth-child(6){width:13%}
+.config-table th:nth-child(7){width:28%}
+.config-table td{overflow:hidden;text-overflow:ellipsis}
+
+/* ---- 设置弹窗 / 表单 / 调色板 ---- */
+.settings-body{display:grid;grid-template-columns:140px 1fr;flex:1 1 auto;min-height:0}
+.settings-nav{display:flex;flex-direction:column;border-right:1px solid var(--line);flex:none}
+.st-nav{background:var(--panel2);border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line));color:var(--muted);text-align:left;border-radius:999px;cursor:pointer;font-size:13px;white-space:nowrap}
+.st-nav:hover{color:var(--text);background:var(--panel2)}
+.st-nav.active{color:#fff;background:var(--accent);border-color:var(--accent);font-weight:600}
+.settings-pages{min-width:0;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-right:2px}
+.st-page>.hint{margin-bottom:12px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr}
+.form-grid label{display:flex;flex-direction:column;color:var(--muted);font-size:12px}
+.form-grid input,.form-grid select{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 10px;outline:none;width:100%}
+.form-grid input:focus,.form-grid select:focus{border-color:var(--accent)}
+.form-grid .span2{grid-column:span 2}
+.form-grid label.check{flex-direction:row;align-items:center;gap:8px;align-self:end;padding-bottom:8px}
+.form-grid label.check input{width:auto}
+.form-actions{display:flex;align-items:center;flex-wrap:wrap;margin-top:4px}
+.form-actions .hint{flex:1;min-width:120px}
+.color-row{display:flex;flex-direction:column;align-items:stretch;background:var(--panel2);border:1px solid var(--line);border-radius:10px}
+.cc-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cc-head h3{margin:0;font-size:14px}
+.cc-block{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:9px}
+.cc-side{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-width:46px}
+.cc-label{font-size:12px;font-weight:650;color:var(--text);white-space:nowrap}
+.cc-swatch{width:30px;height:30px;flex:none;padding:0;cursor:pointer;border:1px solid var(--line);border-radius:7px;box-shadow:0 0 0 1px rgba(0,0,0,.12) inset;transition:transform .12s,box-shadow .12s}
+.cc-swatch:hover{transform:scale(1.07);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 55%,transparent)}
+.cc-fields{display:flex;flex-direction:column;min-width:0}
+.cc-row{display:flex;align-items:center;min-width:0}
+.cc-tag{font-size:11px;color:var(--muted);white-space:nowrap;min-width:34px}
+.form-grid .cc-hex{width:96px;flex:none;height:28px;padding:0 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);color:var(--text);text-transform:uppercase;font:12px/28px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.form-grid .cc-hex:focus,.form-grid .cc-num input:focus{border-color:var(--accent);outline:none}
+.form-grid label.cc-num{display:inline-flex;flex-direction:row;align-items:center;gap:3px;font-size:11px;color:var(--muted);white-space:nowrap}
+.form-grid .cc-num input{width:52px;flex:none;height:28px;padding:0 5px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);color:var(--text);text-align:center;font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.cm-tab{border:0;background:transparent;color:var(--muted);font-size:11px;border-radius:999px;cursor:pointer;white-space:nowrap;touch-action:manipulation;transition:.15s}
+.cm-tab:hover{color:var(--text)}
+.cm-tab.active{background:var(--accent);color:#fff;font-weight:650}
+
+/* ---- 统计汇总 / 表格 / 弹窗外壳 ---- */
+.modal.modal-color{width:min(520px,100%);max-height:90vh;padding:18px 20px}
+
+/* ---- 设置弹窗 / 表单 / 调色板 ---- */
+.cp-tabs{display:flex;justify-content:center;gap:4px;width:max-content;max-width:100%;margin:2px auto 16px;padding:3px;background:var(--panel2);border:1px solid var(--line);border-radius:999px}
+.cp-body{display:grid;grid-template-columns:132px minmax(0,1fr);gap:18px;align-items:center}
+.cp-left{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-width:0;min-height:140px;align-self:stretch;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:16px 10px}
+.cp-preview{width:76px;height:76px;box-sizing:border-box;border-radius:12px;flex:none;border:1px solid var(--line);box-shadow:0 0 0 1px rgba(0,0,0,.14) inset}
+.cp-code{font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--text);white-space:nowrap;display:block;height:16px;line-height:16px;text-align:center}
+.cp-code.is-rgb{font-size:11px;letter-spacing:-.2px}
+.cp-right{min-width:0}
+.cp-sliders{display:flex;flex-direction:column}
+.cp-sliders[hidden]{display:none}
+.cp-slider-row{display:flex;align-items:center;gap:10px}
+.cp-slbl{font-size:12px;color:var(--muted);min-width:46px;white-space:nowrap}
+.cp-range{flex:1 1 auto;min-width:80px;height:16px;margin:0;cursor:pointer;accent-color:var(--accent)}
+.cp-num{width:56px;height:28px;padding:0 5px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);color:var(--text);text-align:center;font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.cp-num:focus{border-color:var(--accent);outline:none}
+.cp-actions{display:flex;justify-content:flex-end}
+.swatch{display:inline-flex;align-items:center;gap:5px;margin-right:8px;font-size:11px;color:var(--muted);white-space:nowrap}
+.swatch i{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+.opt-row{display:flex;flex-wrap:wrap}
+.opt-row .chip{font-size:13px}
+.theme-row{display:flex;flex-wrap:wrap;margin-top:10px}
+.theme-choice{display:flex;align-items:center;gap:10px;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:999px;cursor:pointer;font-size:13px}
+.theme-choice:hover{border-color:var(--accent)}
+.theme-choice.active{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent)}
+.theme-prev{width:34px;height:24px;border-radius:5px;border:1px solid var(--line);flex:none}
+.theme-prev.dark{background:linear-gradient(135deg,#17243a,#0a1120)}
+.theme-prev.light{background:linear-gradient(135deg,#ffffff,#dfe9f7)}
+.about-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+/* 运行状态前两行固定 2 列（同一元素带 about-info 类，卡片样式全继承）；
+ 放在 .about-info 之后保证层叠顺序生效，不改动其余信息的 auto-fit 布局。 */
+.about-lead{grid-template-columns:repeat(2,minmax(0,1fr))}
+.about-info div{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 11px}
+.about-info span{display:block;color:var(--muted);font-size:11px}
+.about-info b{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+
+/* ---- 悬停/点击提示框 ---- */
+.tooltip{position:fixed;z-index:99;pointer-events:none;background:#fff;border:1px solid #cfdaea;color:#111827;border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.7;box-shadow:0 8px 24px rgba(15,30,60,.22);white-space:nowrap}
+.tooltip .t{color:#4b5563;margin-bottom:4px;font-weight:600}
+.tooltip .d{color:var(--down)}
+.tooltip .u{color:var(--up)}
+.tooltip .seg{display:flex;align-items:center;gap:6px}
+.tooltip .seg i{width:9px;height:9px;border-radius:2px;display:inline-block;flex:none}
+.tooltip .tip-row{display:flex;align-items:center;gap:10px;white-space:nowrap}
+.tooltip .tip-name{color:#000;font-weight:600}
+.tooltip .tip-v{font-weight:700;font-variant-numeric:tabular-nums}
+.tooltip .tip-sum{color:#374151;font-weight:600;border-top:1px solid #e5eaf2;margin-top:4px;padding-top:4px}
+
+/* ==================== 响应式 @media all and (display-mode:standalone) ==================== */
+@media all and (display-mode:standalone){
+  body{padding-bottom:env(safe-area-inset-bottom)}
+  .topbar{padding-top:calc(16px + env(safe-area-inset-top))}
+}
+
+/* ==================== 响应式 @media (max-width:1200px) ==================== */
+@media (max-width:1200px){
+  .summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  /* ≤1200px 横向不够按宽度多列铺开，下载器卡片恢复固定 2 列，
+ 与 之前的排版一致；≥1201px 的桌面才走上方 auto-fit 自适应列数。 */
+  .dl-row-items{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* ==================== 响应式 @media (max-width:900px) ==================== */
+@media (max-width:900px){
+  .summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .form-grid{grid-template-columns:1fr}
+  .form-grid .span2{grid-column:span 1}
+  .settings-body{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);min-height:0}
+  .settings-nav{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:0 0 10px;gap:6px}
+  .st-nav{flex:none}
+  .modal.modal-settings{height:min(92vh,760px)}
+}
+
+/* ==================== 响应式 @media (max-width:560px) ==================== */
+@media (max-width:560px){
+  .brand h1{font-size:14px}
+  .logo{width:30px;height:30px;font-size:18px}
+  .top-actions{gap:10px}
+  .pill{height:var(--btn-h);min-height:var(--btn-h);padding:0 9px;font-size:11px;line-height:1;min-width:60px}
+  .panel-head .hint{display:none}
+  .panel-head #lastUpdate{display:inline}
+  .summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .card{border-radius:10px}
+  .card-head{min-height:22px;gap:4px}
+  .card-ttl{gap:4px}
+  .card-ttl b{font-size:11px}
+  .card-date{font-size:9px}
+  .card-dd-trigger{font-size:10px;padding:2px 6px;gap:3px}
+  .card-dd-trigger .caret{font-size:8px}
+  .card-dd-menu.hist-menu{min-width:0;width:min(328px,calc(100vw - 16px));max-width:calc(100vw - 16px)}
+  .hist-row{column-gap:8px;padding:6px 4px;font-size:11px}
+  .hr-half{gap:3px}
+  .hist-row .v b{font-size:11px}
+  .hist-list{max-height:210px}
+  #summaryCards .card:nth-child(odd) .card-dd-menu{left:0;right:auto}
+  .cc-block{grid-template-columns:auto minmax(0,1fr);gap:10px;padding:8px 9px}
+  .cc-side{min-width:40px}
+  .cc-swatch{width:26px;height:26px}
+  .cc-row{gap:6px}
+  .cc-tag{min-width:30px}
+  .form-grid .cc-hex{width:84px}
+  .form-grid .cc-num input{width:46px}
+  .modal.modal-color{width:100%;padding:14px 12px}
+  .cp-body{grid-template-columns:100px minmax(0,1fr);gap:10px;align-items:center}
+  .cp-left{padding:12px 6px;gap:8px;min-height:104px}
+  .cp-preview{width:52px;height:52px}
+  .cp-code.is-rgb{font-size:9px;letter-spacing:-.4px}
+  .cp-slbl{min-width:32px;font-size:11px}
+  .cp-range{min-width:52px}
+  .cp-num{width:46px;font-size:11px}
+  .cp-slider-row{gap:6px}
+  .cp-tabs{margin:2px auto 12px}
+  .card-vals{gap:6px}
+  .card-vals .v{gap:2px}
+  .card-vals .v b{font-size:12px}
+  .card-vals .v i{font-size:10px}
+  .ctrl-top{gap:6px}
+  .ctrl-dd,.ctrl-dropdowns{flex:1 1 0;min-width:0}
+  .ctrl-dd .dropdown,.ctrl-dropdowns .dropdown{flex:1 1 0;min-width:0;width:100%}
+  .ctrl-dd .dd-trigger,.ctrl-dropdowns .dd-trigger{width:100%;min-width:0;padding:5px 8px;font-size:11px}
+  .dd-trigger .dd-count{max-width:76px;overflow:hidden;text-overflow:ellipsis}
+  .dd-menu{min-width:0;width:min(220px,86vw)}
+  .ctrl-dd .dd-menu{right:auto;left:0}
+  .latest-btn{font-size:10px;padding:2px 7px}
+  .stats-summary{gap:16px;padding:8px 10px;justify-content:flex-start}
+  .stats-summary b{font-size:15px}
+  #trafficLegend{display:flex;margin-top:8px}
+  #trafficLegend .sq,
+  #trafficLegend .lg-lb{display:none}
+  #trafficLegend .v-full{display:none}
+  #trafficLegend .v-short{display:inline}
+  #trafficLegend .lg-v{color:var(--c,var(--text))}
+  .dl-row-items{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  .dl-chip{padding:5px 6px;gap:2px;border-radius:8px}
+  .dl-chip .nm{font-size:10px;gap:3px}
+  .dl-chip.summary .nm{font-size:12px}
+  .dl-chip .dot{width:6px;height:6px}
+  .dl-chip .tag{font-size:9px;padding:0 3px}
+  .dl-bottom{gap:3px}
+  .dl-switch{width:20px;height:12px}
+  .dl-switch .knob{width:8px;height:8px}
+  .dl-switch.on .knob{transform:translateX(8px)}
+  .dl-rates{font-size:10px;gap:5px;justify-content:flex-start}
+  .dl-row-items .dl-rates .rf{display:none}
+  .dl-row-items .dl-rates .rc{display:inline}
+  .dl-chip.summary .dl-rates{font-size:11px}
+  .cfg-tools .hint{flex-basis:100%}
+  .modal{padding:16px 14px}
+  .modal.modal-settings{padding:16px 14px}
+  .modal.modal-detail{width:100%;max-height:92vh;padding:12px 10px}
+  .detail-body{--dt-pad:8px}
+  /* 手机端同步桌面 —— 图标 / 文字整体左移（左内边距收紧）、
+ 图标与文字间距 6→3 更靠近；就地覆盖，不放末尾。 */
+  .dt-head{grid-template-columns:46px minmax(0,1fr);gap:3px;padding:var(--dt-pad) var(--dt-pad) var(--dt-pad) 2px}
+  .dt-badge{width:46px;min-height:0}
+  .dt-badge svg{width:46px;height:46px}
+  .dt-main{gap:3px}
+  .dt-row{gap:5px}
+  .dt-line{font-size:11px;gap:5px}
+  .dt-name{font-size:14px}
+  .dt-url{font-size:9px}
+  .dt-k{font-size:9px}
+  .dt-pill{font-size:9px;padding:1px 6px}
+  .dt-lim{font-size:10px}
+  .dt-stats{gap:5px}
+  .dt-stats-row{gap:4px}
+  .dt-stat{padding:6px var(--dt-pad)}
+  .dt-stat span{font-size:9px}
+  .dt-stat b{font-size:14px}
+  .table-wrap.config-table{overflow:visible;max-height:none;border:0;border-radius:0}
+  .config-table{max-height:none}
+  .config-table table,.config-table tbody,.config-table tr,.config-table td{display:block;width:100%}
+  .config-table thead{display:none}
+  .config-table tr{border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:9px}
+  .config-table td{border:0;padding:4px 0;white-space:normal;min-height:26px;display:flex;align-items:center;gap:8px}
+  .config-table td::before{content:attr(data-label);color:var(--muted);font-size:11px;flex:0 0 58px}
+  .config-table .row-btns,.config-table .order-btns{flex-wrap:nowrap}
+  .config-table .row-btns .btn{padding:4px 7px;font-size:11px}
+  .config-table tr:last-child td{border-bottom:0}
+}
+
+/* ==================== 响应式 @media (max-width:360px) ==================== */
+@media (max-width:360px){
+  .legend .lg-row{gap:var(--lg-gap,30px)}
+}
+
+/* ---- 统计汇总 / 表格 / 弹窗外壳 ---- */
+.modal.modal-settings .btn,
+.modal.modal-settings .st-nav,
+.modal.modal-settings .chip,
+.modal.modal-settings .theme-choice{height:var(--btn-h);min-height:var(--btn-h);box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;line-height:1;width:auto;vertical-align:middle}
+.modal.modal-settings .btn.sm,.modal.modal-settings .btn.xs{font-size:12px}
+.modal.modal-settings .config-table .row-btns .btn,
+.modal.modal-settings .config-table .order-btns .btn{padding:0 8px;font-size:11px;width:40px;min-width:40px}
+
+/* ==================== 响应式 @media (min-width:561px) ==================== */
+@media (min-width:561px){
+  .modal.modal-settings{width:min(1280px,96vw)}
+  .config-table table{table-layout:auto}
+  .config-table th:nth-child(1),.config-table th:nth-child(2),
+  .config-table th:nth-child(3),.config-table th:nth-child(4),
+  .config-table th:nth-child(5),.config-table th:nth-child(6),
+  .config-table th:nth-child(7){width:auto}
+  .config-table td{overflow:visible;text-overflow:clip;white-space:nowrap}
+  .config-table .swatch,.config-table .row-btns,.config-table .order-btns{white-space:nowrap}
+}
+.modal.modal-test{width:min(420px,92vw)}
+
+/* ---- 连接测试结果弹窗 ---- */
+.test-body{padding:6px 20px 20px;display:flex;flex-direction:column;gap:12px}
+.test-verdict{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:650}
+.test-verdict .ic{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-size:13px;font-weight:800;flex:none}
+.test-verdict.ok{color:var(--ok)}
+.test-verdict.ok .ic{color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,transparent)}
+.test-verdict.bad{color:var(--bad)}
+.test-verdict.bad .ic{color:var(--bad);background:color-mix(in srgb,var(--bad) 16%,transparent)}
+.test-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.test-meta .cell{display:flex;flex-direction:column;gap:4px;min-width:0;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.test-meta .cell span{font-size:11px;color:var(--muted)}
+.test-meta .cell b{font-size:14px;font-weight:650;color:var(--text);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.test-meta .cell b.u{color:var(--up)}
+.test-meta .cell b.d{color:var(--down)}
+.test-url,.test-err{font-size:12px;color:var(--muted);overflow-wrap:anywhere;word-break:break-word}
+.test-err{color:var(--bad);padding:9px 11px;border-radius:10px;background:color-mix(in srgb,var(--bad) 10%,var(--panel2))}
+
+/* ==================== 响应式 @media (max-width:560px) ==================== */
+@media (max-width:560px){
+  .pan-range{text-align:right}
+  .pan-head-right .latest-btn{font-size:10px;padding:2px 6px}
+}
+
+/* ---- 主题变量 ---- */
+:root{--btn-h:30px}
+
+/* ---- 顶栏 / 状态胶囊 ---- */
+/* 顶栏与主内容用同一组 clamp 左右留白，宽屏铺满时二者对齐；
+ 窄屏仍由后面的 900 / 560 断点覆盖成 11 / 9px。 */
+.topbar{padding:12px clamp(18px,1.4vw,36px)}
+
+/* ---- 页面布局 / 汇总卡片 ---- */
+main{padding:16px clamp(18px,1.4vw,36px) 28px}
+
+/* ---- 面板标题 / 控件行 ---- */
+.panel{padding:12px 14px;margin-bottom:12px}
+
+/* ---- 页面布局 / 汇总卡片 ---- */
+.card{padding:7px 9px}
+
+/* ---- 认证层 ---- */
+.auth-box{padding:20px 20px 14px}
+
+/* ---- 统计汇总 / 表格 / 弹窗外壳 ---- */
+.modal{padding:14px 16px}
+.modal.modal-settings{padding:14px 16px}
+
+/* ---- 页面布局 / 汇总卡片 ---- */
+.summary-grid{gap:8px;margin-bottom:9px}
+
+/* ---- 面板标题 / 控件行 ---- */
+.panel-head{gap:10px;margin-bottom:9px}
+.panel-head.compact{margin-bottom:7px}
+.hint{margin-top:2px;line-height:1.45}
+
+/* ---- 范围/方向下拉控件 ---- */
+.chart-controls{margin-bottom:8px}
+
+/* ---- 统计汇总 / 表格 / 弹窗外壳 ---- */
+.stats-summary{gap:20px;padding:8px 10px;margin-bottom:8px}
+
+/* ---- 图表双层容器 / 图例 ---- */
+.legend{gap:4px 6px;margin-top:6px}
+
+/* ---- 下载器卡片 ---- */
+.dl-strip,.dl-row,.dl-row-items{gap:5px}
+.dl-chip{gap:2px;padding:5px 8px}
+
+/* ---- 设置弹窗 / 表单 / 调色板 ---- */
+.cfg-tools{margin:2px 0 7px}
+
+/* ---- 统计汇总 / 表格 / 弹窗外壳 ---- */
+.modal-head{margin-bottom:9px}
+.modal h3{margin:12px 0 7px}
+
+/* ---- 设置弹窗 / 表单 / 调色板 ---- */
+.settings-body{gap:14px}
+.settings-nav{gap:3px;padding-right:10px}
+.form-grid{gap:8px}
+.form-grid label{gap:3px}
+.form-actions{gap:7px}
+.opt-row{gap:6px;margin:7px 0 12px}
+.theme-row{gap:8px}
+.color-row{gap:8px;padding:8px 10px}
+.cc-block{gap:12px;padding:8px 10px}
+.cc-fields{gap:6px}
+.cc-row{gap:6px}
+
+/* ---- 下载器详情弹窗 ---- */
+.dt-stats{margin-top:7px;gap:5px}
+.dt-sec{margin:9px 2px 5px}
+.dt-items{gap:6px}
+
+/* ---- 统计汇总 / 表格 / 弹窗外壳 ---- */
+.table-wrap{margin-top:8px}
+th,td{padding:7px 9px}
+
+/* ---- 设置弹窗 / 表单 / 调色板 ---- */
+.about-info{gap:7px;margin:7px 0 4px}
+.cp-sliders{gap:9px}
+.cp-actions{margin-top:12px}
+
+/* ---- 认证层 ---- */
+.auth-brand{margin-bottom:16px}
+.auth-hint{margin:4px 0 12px}
+.auth-form label{margin-bottom:9px}
+.auth-msg{margin:2px 0 6px}
+.auth-form .btn.ghost{margin-top:6px}
+.auth-foot{margin-top:14px;padding-top:10px}
+
+/* ---- 通用按钮 ---- */
+.btn{padding:6px 12px}
+.btn.sm{padding:3px 8px}
+.btn.xs{padding:2px 6px}
+.btn.block{padding:9px}
+
+/* ---- 顶栏 / 状态胶囊 ---- */
+.pill{padding:0 10px}
+
+/* ---- 范围/方向下拉控件 ---- */
+.chip{padding:4px 10px}
+
+/* ---- 设置弹窗 / 表单 / 调色板 ---- */
+.st-nav{padding:7px 11px}
+.theme-choice{padding:8px 12px}
+
+/* ---- 面板标题 / 控件行 ---- */
+.latest-btn{padding:2px 8px}
+
+/* ---- 设置弹窗 / 表单 / 调色板 ---- */
+.cm-tab{padding:4px 10px}
+
+/* ---- 范围/方向下拉控件 ---- */
+.dd-foot button{padding:4px 8px}
+
+/* ---- 设置弹窗 / 表单 / 调色板 ---- */
+.opt-row .chip{padding:6px 12px}
+
+/* ---- 统计汇总 / 表格 / 弹窗外壳 ---- */
+.config-table .row-btns .btn{padding:3px 7px}
+.modal.modal-settings .btn,
+.modal.modal-settings .st-nav,
+.modal.modal-settings .chip,
+.modal.modal-settings .theme-choice{padding:0 12px}
+.modal.modal-settings .btn.sm,.modal.modal-settings .btn.xs{padding:0 9px}
+.modal.modal-settings .chip{padding:0 12px}
+.modal.modal-settings .theme-choice{padding:0 12px}
+
+/* ---- 图表双层容器 / 图例 ---- */
+.chart-lg{height:560px}
+
+/* ---- 面板标题 / 控件行 ---- */
+.pan-head-right{align-items:flex-start;min-height:22px}
+.pan-head-right .latest-btn{align-self:flex-start}
+.pan-range{align-self:flex-start;line-height:22px}
+
+/* ---- 范围/方向下拉控件 ---- */
+.chart-controls .ctrl-top{justify-content:space-between}
+.chart-controls .ctrl-dd{flex:0 0 auto;min-width:0}
+.chart-controls .ctrl-dropdowns{flex:0 0 auto;min-width:0;margin-left:auto}
+.chart-controls .dd-trigger{min-width:0;width:auto;height:30px;min-height:30px;box-sizing:border-box;padding:0 9px;gap:6px}
+.chart-controls .dd-menu{min-width:0;width:max-content;max-width:min(240px,86vw)}
+.chart-controls .dd-item{padding:5px 7px;gap:7px}
+.chart-controls .dd-title{padding:5px 7px 3px}
+.chart-controls .dd-foot button{padding:4px 8px}
+.chart-controls .dd-trigger .dd-count{max-width:none;overflow:visible;text-overflow:clip}
+
+/* ==================== 响应式 @media (max-width:900px) ==================== */
+@media (max-width:900px){
+  .topbar{padding:9px 12px}
+  main{padding:12px 11px 22px}
+  .panel{padding:10px}
+  .settings-body{gap:9px}
+  .chart-lg{height:480px}
+}
+
+/* ==================== 响应式 @media (max-width:560px) ==================== */
+@media (max-width:560px){
+  .topbar{padding:8px 10px}
+  main{padding:9px 9px 18px}
+  .panel{padding:9px;margin-bottom:9px}
+  .panel-head{margin-bottom:6px}
+  .summary-grid{gap:6px;margin-bottom:7px}
+  .card{padding:6px 7px}
+  .card-vals{margin-top:3px}
+  .stats-summary{margin-bottom:7px}
+  .legend{margin-top:5px}
+  .modal-mask{padding:6px}
+  .modal,.modal.modal-settings{padding:12px 10px}
+  .dt-stats{margin-top:6px}
+  .pan-range{font-size:10px;line-height:22px;white-space:nowrap}
+  .pan-head-right{gap:6px}
+  .chart-lg{height:380px}
+  .chart-controls .ctrl-dd,.chart-controls .ctrl-dropdowns{flex:0 0 auto;min-width:0}
+  .chart-controls .dd-trigger{width:auto;min-width:0}
+  .chart-controls .dd-menu{width:max-content;min-width:0}
+}
+
+/* ---- 设置弹窗 / 表单 / 调色板 ---- */
+.form-grid label.cc-numlike{display:inline-flex;flex-direction:row;align-items:center;gap:3px;font-size:11px;color:var(--muted);white-space:nowrap}
+.cc-num .cc-pfx,.cc-numlike .cc-pfx{flex:none}
+.cc-numlike .cc-pfx{visibility:hidden}
+.cc-row .cc-tag{width:36px;min-width:36px;flex:none}
+
+/* ---- 统计汇总 / 表格 / 弹窗外壳 ---- */
+.table-wrap.config-table,.config-table{max-height:none}
+
+/* ==================== 响应式 @media (min-width:561px) ==================== */
+@media (min-width:561px){
+  .card-dd-menu.hist-menu{width:min(384px,calc(100vw - 16px));min-width:344px}
+}
+
+/* ---- 页面布局 / 汇总卡片 ---- */
+.hist-list{overflow-x:hidden}
+
+/* ==================== 响应式 @media (min-width:561px) ==================== */
+@media (min-width:561px){
+  .modal.modal-settings .config-table .row-btns .btn,
+  .modal.modal-settings .config-table .order-btns .btn{height:26px;min-height:26px;width:44px;min-width:44px;padding:0 10px}
+  .panel-head{position:relative}
+  .panel-head>.pan-head-right,.panel-head>#lastUpdate{position:absolute;top:0;right:0}
+}
+
+/* ---- 统计汇总 / 表格 / 弹窗外壳 ---- */
+.modal.modal-settings .settings-body{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);gap:12px}
+.modal.modal-settings .settings-nav{flex-direction:row;align-items:center;overflow-x:auto;overscroll-behavior-x:contain;border-right:0;border-bottom:1px solid var(--line);padding:0 0 10px;gap:6px}
+.modal.modal-settings .st-nav{flex:none;align-self:center;justify-content:center}
+
+/* ==================== 响应式 @media (min-width:561px) ==================== */
+@media (min-width:561px){
+  #trafficLegend .sq{display:inline-block}
+  #trafficLegend .lg-lb{display:inline}
+  #trafficLegend .v-full{display:inline}
+  #trafficLegend .v-short{display:none}
+}
+
+/* ---- 悬停/点击提示框 ---- */
+.tooltip .tip-sum.lead{border-top:0;border-bottom:1px solid #e5eaf2;margin:0 0 4px;padding:0 0 4px}
+
+/* ==================== 响应式 @media (min-width:901px) — 桌面端紧凑布局 ====================
+ 目标：按「浏览器真实可用高度 window.innerHeight」（已扣除标签栏 / 地址栏 /
+ 书签栏与操作系统任务栏）一页完整展现整个页面、不出现纵向滚动条。
+ 两层配合：
+ 1) CSS 这里把顶栏标题行 / 四张汇总小卡 / 下载器卡片 / 区间数据小卡 /
+ 绘图区↔图例距离 / 图例本身行间距 / 卡片之间留白全部压到最紧，尽量把
+ 高度让给流量统计绘图区；
+ 2) app.js 的 fitDesktopCharts 运行时读 window.innerHeight，量出固定内容
+ 高度，把剩余空间全部分配给唯一的流量统计绘图区（inline height 覆盖下面的
+ 回退值），窗口 / 可用高度一变就实时重算（v1.0.2 起只有一张图表）。
+ 下面的 .chart-lg 高度只是「JS 执行前 / 无 JS」时的回退初始值，运行时会被
+ inline height 覆盖；本块只在 ≥901px 生效，≤900px（含手机 380px 图表）与
+ 手机端的所有既有值一律不动。 */
+@media (min-width:901px){
+  /* 顶栏标题行：缩小 logo / 胶囊高度 / 标题字号与上下内边距 */
+  .topbar{padding:4px clamp(18px,1.4vw,36px)}
+  /* 桌面端此前压到上下 padding 4px，30px logo 几乎顶满整行高度；
+ 适当调小到 26px（字号 / 圆角同步），让顶栏上下留出呼吸空间，不再顶死。 */
+  .topbar .logo{width:26px;height:26px;border-radius:8px;font-size:16px}
+  .topbar .brand h1{font-size:15px;line-height:1.2}
+  .topbar .pill{height:26px;min-height:26px;font-size:11px}
+  /* 主内容上下留白 */
+  main{padding:6px clamp(18px,1.4vw,36px) 8px}
+  /* 卡片之间留白 / 卡片内边距 / 面板标题行 */
+  .panel{padding:6px 12px;margin-bottom:5px}
+  .panel-head{gap:8px;margin-bottom:3px}
+  .panel-head.compact{margin-bottom:3px}
+  .panel-head h2{font-size:14px;line-height:1.25}
+  /* 四张汇总小卡：行距 / 内边距 / 标题行 / 数值行 */
+  .summary-grid{gap:4px;margin-bottom:4px}
+  .card{padding:2px 9px}
+  .card-head{min-height:18px}
+  .card-vals{margin-top:1px}
+  /* 下载器卡片 */
+  .dl-strip,.dl-row,.dl-row-items{gap:3px}
+  .dl-chip{gap:1px;padding:2px 7px}
+  /* 两张图表的控件行 / 区间上传下载数据小卡 */
+  .chart-controls{margin-bottom:3px}
+  .chart-controls .dd-trigger{height:24px;min-height:24px}
+  .stats-summary{gap:14px;padding:3px 10px;margin-bottom:3px}
+  .stats-summary b{font-size:14px;margin-top:0}
+  /* 新增：绘图区 ↔ 图例文字的距离、图例本身的行间距 */
+  .legend{margin-top:1px;gap:1px 6px}
+  .legend .lg-item{line-height:1.25}
+  /* 回退 / 初始高度：运行时由 app.js fitDesktopCharts 按 innerHeight 覆盖 */
+  .chart-lg{height:200px}
+
+  /* 两个「时间范围（单选）」弹出框的「固定 5 项高度 + 右侧竖向
+ 滚动条」规则由 的 ≥901px 桌面专用块提升为**全端全局规则**（见文件
+ 末尾的全局块），手机端（≤900px）与桌面端完全一致：同高度、同 sticky
+ 标题、同默认滚动条样式。这里不再重复声明，避免两处覆盖顺序踩坑。 */
+}
+
+/* ==================== 时间范围弹出框全端统一（桌面 + 手机端） ====================
+ 曾把「固定 5 个可选项高度 + 右侧竖向滚动条」只做在 ≥901px 桌面专用块里，
+ 手机端（≤900px）仍是列表全展开、把 12 个范围选项一次铺出来，很长且没有
+ 滚动条。把整组规则提升为**全局规则**（放在所有 @media 之后，层叠优先级
+ 最高），桌面端与手机端用完全同一套 DOM 行为与样式：
+ · 单项固定 30px、标题固定 26px（sticky 固定在滚动区顶部）；
+ · 菜单 max-height = 5×30 + 26 + 下内边距 6 + 边框 2 = 184px（border-box），
+ 去掉上内边距让 sticky 标题与滚动区严丝合缝，正好露出 5 个可选项；
+ · 第 6 项及以后靠弹出框右侧的竖向滚动条往下拉出，overscroll 不穿透页面；
+ · 用 id 精确限定「时间范围」菜单，不影响「方向」下拉 / 顶部四小卡片
+ 「历史数据」下拉，也不改动任何触发按钮 / 选项文案 / 选中逻辑。
+ 继续保留：不写任何 ::-webkit-scrollbar / scrollbar-width /
+ scrollbar-color，竖向滚动条统一回落到浏览器默认样式，与顶部小卡片的
+ .hist-list 同源，桌面与手机两处观感完全一致。 */
+.chart-controls #trafficRangeMenu{
+  --dd-opt-h:30px;
+  box-sizing:border-box;
+  padding:0 6px 6px;
+  max-height:calc(var(--dd-opt-h) * 5 + 26px + 8px);
+  overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
+}
+.chart-controls #trafficRangeMenu .dd-item{height:var(--dd-opt-h);box-sizing:border-box}
+.chart-controls #trafficRangeMenu .dd-title{
+  position:sticky;top:0;z-index:1;background:var(--panel);
+  height:26px;box-sizing:border-box;line-height:26px;padding:0 7px
+}
+
+/* 按钮 / 触发器：文字始终完整落在边框内，允许换行、按钮随内容增高，
+ 不再因固定高度或 nowrap 把文字挤出边框。.dl-switch / .cc-swatch 等
+ 纯图形按钮不在列表内，尺寸不受影响。 */
+.btn,.chip,.dd-trigger,.card-dd-trigger,.latest-btn,.st-nav,.cm-tab,.pill{
+  max-width:100%;box-sizing:border-box;
+  white-space:normal;line-height:1.3;height:auto;
+  overflow-wrap:anywhere;word-break:break-word;
+}
+.dd-trigger .dd-count,.card-dd-trigger .dd-count{
+  max-width:none;overflow:visible;text-overflow:clip;
+}
+
+
+/* ==================== v1.0.2：恢复上一版本下载器卡片 + 手机端紧凑 ====================
+ 1) 下载器卡片改回「汇总独立占一行 + 其余自适应网格」，删除 5 列紧凑与
+    标题行汇总（对应 DOM 与样式均已移除）；
+ 2) 实时速率卡片删除，绘图区只剩一张，桌面端自适应高度按单图计算；
+ 3) 手机端整体收紧间距 / 字号 / 图表高度，保证完整内容尽量在一页内展示、
+    不出现横向滚动条。 */
+
+/* 下载器卡片自适应网格（上一版本样式） */
+.dl-row-items{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+@media (max-width:1200px){
+  .dl-row-items{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* 小屏（含平板）：单张图表高度收缩，避免 560px 把内容顶出多屏 */
+@media (max-width:900px){
+  .chart-lg,.chart-viewport .chart-lg{height:220px}
+}
+
+/* 手机端紧凑：压缩所有纵向间距 / 字号 / 图表高度，一页内展示完整内容 */
+@media (max-width:560px){
+  html,body{overflow-x:hidden}
+  main{padding:8px 10px 12px}
+  .summary-grid{gap:6px;margin-bottom:7px}
+  .card{padding:5px 7px}
+  .card-head{min-height:18px;gap:3px;margin-bottom:2px}
+  .card-ttl b{font-size:10px}
+  .card-date{font-size:9px}
+  .card-dd-trigger{font-size:9px;padding:1px 5px}
+  .card-vals{gap:5px;margin-top:3px}
+  .card-vals .v b{font-size:12px}
+  .card-vals .v i{font-size:9px}
+  .panel{padding:7px 9px;margin-bottom:7px;border-radius:10px}
+  .panel-head{gap:6px;margin-bottom:5px}
+  .panel-head.compact{margin-bottom:5px}
+  .panel-head h2{font-size:13px}
+  .pan-range{font-size:10px}
+  .chart-controls{margin-bottom:5px}
+  .chart-controls .ctrl-top{gap:5px}
+  .dd-trigger,.chart-controls .dd-trigger{font-size:10px;padding:4px 8px;min-width:0;height:auto;min-height:0}
+  .dd-menu .dd-item{padding:5px 7px;font-size:11px}
+  .dd-title{font-size:10px}
+  .chart-lg,.chart-viewport .chart-lg{height:170px}
+  .stats-summary{gap:10px;padding:5px 8px;margin-bottom:5px}
+  .stats-summary div{font-size:10px}
+  .stats-summary b{font-size:13px;margin-top:0}
+  .legend{gap:2px 5px;margin-top:4px;font-size:10px}
+  .legend .lg-item{gap:3px}
+  .dl-strip,.dl-row,.dl-row-items{gap:4px}
+  .dl-chip{gap:1px;padding:3px 6px;border-radius:7px}
+  .dl-chip .nm{font-size:10px;gap:3px}
+  .dl-chip.summary .nm{font-size:11px}
+  .dl-chip .tag{font-size:9px;padding:0 3px}
+  .dl-rates{font-size:9px;gap:4px}
+  .dl-bottom{gap:2px}
+  .dl-switch{width:18px;height:11px}
+  .dl-switch .knob{width:7px;height:7px}
+  .dl-switch.on .knob{transform:translateX(7px)}
+  .latest-btn{font-size:9px;padding:1px 6px}
+  #trafficLegend .lg-v{font-size:10px}
+  .hist-row{padding:4px 3px;font-size:10px}
+  .hist-list{max-height:160px}
+}
+
+/* ==================== v1.0.4：手机端「除绘图区外」再收紧（需求4） ====================
+ 需求4：手机端除「流量统计卡片绘图区」外，其它所有部分再调整紧凑一些，
+ 保证一页放下整个页面内容，且底部留白一个单个下载器小卡片的高度。
+ · 绘图区高度这里不动，改由 app.js fitDesktopCharts 按视口真实可用高度
+   分配，并把底部留白扣成「1 个小卡高度」（桌面为 2 个），因此本块刻意
+   不再写 .chart-lg 高度；CSS 里各断点的 chart-lg 值仅作「无 JS」回退。
+ · 下面只压缩「绘图区之外」的 padding / gap / margin / 字号，把 fixedH
+   压到最小，让绘图区拿到更多空间、整页更易一屏放下。
+ · 放在文件最末尾，层叠上覆盖前面各 @media (max-width:560px) 块的同值。 */
+@media (max-width:560px){
+  html,body{overflow-x:hidden}
+  main{padding:5px 8px 4px}
+  .summary-grid{gap:4px;margin-bottom:4px}
+  .card{padding:3px 6px;border-radius:9px}
+  .card-head{min-height:15px;gap:2px;margin-bottom:1px}
+  .card-ttl b{font-size:10px}
+  .card-date{font-size:8px}
+  .card-dd-trigger{font-size:9px;padding:1px 4px}
+  .card-vals{gap:4px;margin-top:1px}
+  .card-vals .v b{font-size:11px}
+  .card-vals .v i{font-size:9px}
+  .panel{padding:5px 7px;margin-bottom:4px;border-radius:9px}
+  .panel-head{gap:4px;margin-bottom:3px}
+  .panel-head.compact{margin-bottom:3px}
+  .panel-head h2{font-size:12px;line-height:1.3}
+  .pan-range{font-size:9px}
+  .latest-btn{font-size:9px;padding:1px 5px}
+  .chart-controls{margin-bottom:3px}
+  .chart-controls .ctrl-top{gap:4px}
+  .dd-trigger,.chart-controls .dd-trigger{font-size:10px;padding:3px 7px;min-width:0;height:auto;min-height:0}
+  .dd-menu .dd-item{padding:4px 6px;font-size:10px}
+  .dd-title{font-size:9px}
+  .stats-summary{gap:8px;padding:4px 7px;margin-bottom:3px}
+  .stats-summary div{font-size:9px}
+  .stats-summary b{font-size:12px;margin-top:0}
+  .legend{gap:1px 4px;margin-top:3px;font-size:9px}
+  .legend .lg-item{gap:2px}
+  #trafficLegend{margin-top:3px}
+  #trafficLegend .lg-v{font-size:9px}
+  .dl-strip,.dl-row,.dl-row-items{gap:3px}
+  .dl-chip{gap:1px;padding:2px 5px;border-radius:7px}
+  .dl-chip .nm{font-size:9px;gap:2px}
+  .dl-chip.summary .nm{font-size:11px}
+  .dl-chip .tag{font-size:8px;padding:0 3px}
+  .dl-rates{font-size:9px;gap:3px}
+  .dl-chip.summary .dl-rates{font-size:10px}
+  .dl-bottom{gap:1px}
+  .dl-switch{width:16px;height:10px}
+  .dl-switch .knob{width:6px;height:6px}
+  .dl-switch.on .knob{transform:translateX(6px)}
+  .dl-chip .dot{width:5px;height:5px}
+  .hist-row{padding:3px 3px;font-size:9px}
+  .hist-list{max-height:140px}
+}

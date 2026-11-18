@@ -1,0 +1,48 @@
+# 在线部署（源码构建）：拉取 python:3.11-slim 基础镜像并在本机构建。
+# 若飞牛报 docker.fnnas.com 401 Unauthorized，改用 docker-compose.offline.yml（见 README 3.1）。
+services:
+  torrent-traffic-monitor:
+    build: .
+    image: torrent-traffic-monitor:1.0.0
+    container_name: torrent-traffic-monitor
+    restart: unless-stopped
+    user: "${PUID:-1000}:${PGID:-1000}"
+    ports:
+      # 默认监听宿主机所有网卡：局域网内其他主机可直接用
+      # http://<NAS 内网 IP>:${WEB_PORT:-8080} 访问，无需反向代理。
+      # 若只想让本机访问（例如由本机 lucky 反代统一收口），改成
+      #   - "127.0.0.1:${WEB_PORT:-8080}:8080"
+      # 若只想放行某一个内网 IP，改成
+      #   - "<宿主机内网 IP>:${WEB_PORT:-8080}:8080"
+      # 如需公网访问，请务必经反向代理追加 HTTPS / 二次认证 / IP 白名单，
+      # 不要直接把 8080 暴露到公网（见 docs/安全加固与重新部署指南.md）。
+      - "${WEB_PORT:-8080}:8080"
+    environment:
+      TZ_OFFSET: "8"
+      POLL_INTERVAL: "5"
+      TRAFFIC_INTERVAL: "60"
+      REQUEST_TIMEOUT: "5"
+      SAMPLE_RETENTION_DAYS: "7"
+      # ---- 建议写进同目录 .env（chmod 600），别把强密码写进 compose 入库 ----
+      # 首次部署设置这两个值后，容器启动即用该强账号、无需 admin/admin 改密（R1）
+      BOOTSTRAP_USERNAME: "${BOOTSTRAP_USERNAME:-}"
+      BOOTSTRAP_PASSWORD: "${BOOTSTRAP_PASSWORD:-}"
+      # 下载器密码加密密钥；强烈建议显式设置并与 data 卷分开备份（R9）
+      SECRET_KEY: "${SECRET_KEY:-}"
+      # 可信反代网段：只有来自这些网段的请求才识别 X-Forwarded-For（R4）
+      # 例：lucky 与容器同机走 172.17.0.1 → "172.17.0.1/32"；留空则不信任任何 XFF
+      TRUSTED_PROXIES: "${TRUSTED_PROXIES:-}"
+      SESSION_BIND: "${SESSION_BIND:-1}"
+      SESSION_TTL_DAYS: "${SESSION_TTL_DAYS:-30}"
+      # 严格模式：设为 0 后「测试连接」只允许已保存的下载器地址访问内网（R2）
+      ALLOW_PRIVATE_TARGETS: "${ALLOW_PRIVATE_TARGETS:-1}"
+    volumes:
+      # 首次部署前先执行: cp config.example.json config.json 并填好下载器
+      # 若忘记创建 config.json，容器仍可启动，之后在 Web「下载器配置」里手动添加即可
+      - ./config.json:/app/config.json:ro
+      - ./data:/app/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
