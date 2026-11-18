@@ -1,0 +1,31 @@
+name: Docker 构建校验
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 构建独立 Docker 版镜像
+        run: docker build -t torrent-traffic-monitor:ci ./docker
+
+      - name: 校验两个 compose 配置
+        run: |
+          docker compose -f docker/docker-compose.yml config > /dev/null
+          docker compose -f docker/docker-compose.offline.yml config > /dev/null
+
+      - name: 冒烟测试
+        run: |
+          docker run -d --name ttm-ci -p 18088:8080 torrent-traffic-monitor:ci
+          for i in $(seq 1 20); do
+            curl -fsS http://127.0.0.1:18088/api/health && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:18088/ > /dev/null
+          docker rm -f ttm-ci
